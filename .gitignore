@@ -1,0 +1,16 @@
+pcbox-data/
+.venv/
+.venv-build/
+build/
+dist/
+*.spec
+__pycache__/
+*.bak*
+.version
+.DS_Store
+*.db
+*_config.json
+._*
+BAK/
+.python/
+.uv/

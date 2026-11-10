@@ -1,0 +1,65 @@
+name: Compilar portable
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest,  name: windows-x64 }
+          - { os: ubuntu-24.04,     name: linux-x64 }
+          - { os: ubuntu-24.04-arm, name: linux-arm64 }
+          - { os: macos-latest,    name: macos-arm64 }
+          - { os: macos-15-intel,  name: macos-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compilar (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: build.bat
+      - name: Compilar (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash build.sh
+      - name: Empaquetar
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            mv pcbox-portable.exe pcbox-portable-${{ matrix.name }}.exe
+          else
+            mv pcbox-portable pcbox-portable-${{ matrix.name }}
+            tar czf pcbox-portable-${{ matrix.name }}.tar.gz pcbox-portable-${{ matrix.name }}
+            rm pcbox-portable-${{ matrix.name }}
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pcbox-${{ matrix.name }}
+          path: dist/pcbox-portable-*
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pcbox-*
+          merge-multiple: true
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+            configurar_ssh.sh
+            configurar_ssh.bat
+            INSTALACION.md
