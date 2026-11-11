@@ -120,10 +120,23 @@ def pasadas(norad, nombre, l1, l2, o, t0, min_el):
     return [dict(p, sat=nombre, norad=norad) for p in out if p["max_el"] >= min_el]
 
 
+def ubicacion():
+    # Ubicación del operador: la de config.json (ciudad/país del asistente); si no hay, la de aprs_config.json
+    try:
+        import os as _os
+        c = json.load(open(_os.path.join(__PCBOX_DATA__, "config.json"), encoding="utf-8"))
+        la, lo = float(c.get("lat") or 0), float(c.get("lon") or 0)
+        if la or lo:
+            return {"lat": la, "lon": lo}
+    except Exception:
+        pass
+    return json.load(open(APRS_CFG))
+
+
 def recalcular():
     with RLOCK:
         c = cfg()
-        ap = json.load(open(APRS_CFG))
+        ap = ubicacion()
         o = observador(float(ap["lat"]), float(ap["lon"]))
         cat = parsear(open(TLE_PATH).read())
         ids, falta = resolver(c["sats"], cat)
@@ -228,7 +241,7 @@ def api_track():
         return jsonify({"error": "parámetros inválidos"}), 400
     try:
         cat = parsear(open(TLE_PATH).read())
-        ap = json.load(open(APRS_CFG))
+        ap = ubicacion()
         o = observador(float(ap["lat"]), float(ap["lon"]))
     except Exception as e:
         return jsonify({"error": "faltan datos (TLE o ubicación): %s" % e}), 503
