@@ -1,0 +1,19 @@
+      <section class="card" id="sismos" style="--accent:#e5534b">
+        <div class="card-head">
+          <span class="card-title">SISMOS</span>
+          <span class="card-meta"><button type="button" class="lh-chip" id="sis-refresh" title="Actualizar sismos ahora">⟳</button> <button type="button" class="lh-chip" id="sis-cfg-btn" title="Configurar alerta">⚙</button> <button type="button" class="lh-chip" id="sis-f-csn">CSN</button> <button type="button" class="lh-chip" id="sis-f-chile">USGS Chile</button> <button type="button" class="lh-chip" id="sis-f-mundo">USGS Mundo</button> <span id="sis-meta">--</span></span>
+        </div>
+        <div class="card-body" style="padding:10px 14px;overflow:auto;">
+          <div id="sis-cfg" style="display:none;margin-bottom:10px;">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+              <label>Distancia (km a la redonda)<br><input type="number" id="sis-c-km" min="0" max="20000" style="width:100px"></label>
+              <label>Mostrar aviso (segundos)<br><input type="number" id="sis-c-seg" min="3" max="120" style="width:100px"></label>
+              <label>Magnitud mínima<br><input type="number" id="sis-c-mag" min="0" max="10" step="0.1" style="width:100px"></label>
+              <button type="button" class="qsl-btn" id="sis-c-ok">Guardar</button>
+              <button type="button" class="qsl-btn" id="sis-c-test">Probar</button>
+            </div>
+            <div id="sis-c-msg" style="margin-top:6px;font-size:0.85em;color:var(--text-dim)"></div>
+          </div>
+          <div id="sis-lista"></div>
+        </div>
+      </section>

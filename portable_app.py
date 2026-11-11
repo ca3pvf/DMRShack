@@ -52,7 +52,6 @@ MODULOS = [
     ("contactos", "contactos_service.py"),
     ("hscard", "hscard_service.py"),
     ("sat", "sat_service.py"),
-    ("sismos", "sismos_service.py"),
     ("aprs", "aprs_service.py"),
     ("salud", "salud_lite.py"),
     ("rec", "rec_service.py"),
@@ -88,7 +87,6 @@ ARRANQUE = {
     "system": lambda m: hilo(m.muestrear),
     "contactos": lambda m: (m.db().close(), hilo(m._auto_sync)),
     "sat": lambda m: hilo(m.bucle),
-    "sismos": lambda m: (hilo(m.bucle), hilo(m.bucle_usgs)),
     "aprs": lambda m: (m.init_db(), m.cargar_config(),
                        [hilo(f) for f in (m.conectar_loop, m.reintentos_loop, m.baliza_loop)]),
     "salud": lambda m: hilo(m.bucle),
@@ -202,6 +200,8 @@ def escribir_archivos(data, cfg):
 def puerto_libre(host, preferido):
     for p in (preferido, 0):
         s = socket.socket()
+        if os.name != "nt":
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   # tras reiniciar, TIME_WAIT no es puerto ocupado
         try:
             s.bind((host, p))
             return s.getsockname()[1]
@@ -401,10 +401,315 @@ def montar(app, cargados):
                 vistos[(regla.rule, m)] = clave
 
 
+# ---------------------------------------------------------------- piezas (micro apps de DMRShack)
+# Una pieza es una carpeta con un pieza.json (ver piezas/LEEME.md). Las incluidas viven en piezas/ y las que
+# instala el usuario en <datos>/piezas/. Los cambios (agregar, quitar, activar) se aplican al reiniciar.
+RE_ID_PIEZA = re.compile(r"^[a-z][a-z0-9_]{1,23}$")
+RE_VER_PIEZA = re.compile(r"^\d+(\.\d+){0,3}$")
+RE_FUNC = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}$")
+VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "satelites", "grabaciones", "salud",
+                 "ranking", "brandmeister", "protocolos", "guardia", "qsl", "config", "hsnx", "radioid", "piezas"}
+EXT_PIEZA = {".json", ".py", ".html", ".js", ".css", ".md", ".txt", ".png", ".svg", ".jpg", ".gif"}
+MAX_ZIP_PIEZA = 5 * 1024 * 1024
+PIEZAS = {}          # estado al arrancar: id -> info
+
+
+def _dentro(base, rel):
+    p = (base / rel).resolve()
+    return p if base.resolve() in p.parents else None
+
+
+def validar_pieza(m, d):
+    # Devuelve None si el pieza.json es valido, o el motivo del error.
+    if not isinstance(m, dict):
+        return "pieza.json no es un objeto JSON"
+    pid = m.get("id")
+    if not isinstance(pid, str) or not RE_ID_PIEZA.match(pid):
+        return "id inválido (minúsculas, números y _; de 2 a 24 caracteres)"
+    if pid in VISTAS_NUCLEO or pid in {k for k, _ in MODULOS}:
+        return "el id '%s' está reservado por el núcleo" % pid
+    if d.name != pid:
+        return "la carpeta debe llamarse igual que el id ('%s')" % pid
+    if not isinstance(m.get("nombre"), str) or not 1 <= len(m["nombre"]) <= 40:
+        return "falta el nombre (hasta 40 caracteres)"
+    if not RE_VER_PIEZA.match(str(m.get("version", ""))):
+        return "versión inválida (ej. 1.0.0)"
+    be, fe = m.get("backend"), m.get("frontend")
+    if be is not None:
+        if not isinstance(be, dict) or not isinstance(be.get("archivo"), str):
+            return "backend.archivo falta"
+        f = _dentro(d, be["archivo"])
+        if not f or not f.is_file() or f.suffix != ".py":
+            return "backend.archivo no existe o no es un .py"
+        for k in ("init", "arranque"):
+            lst = be.get(k, [])
+            if not isinstance(lst, list) or not all(isinstance(x, str) and RE_FUNC.match(x) for x in lst):
+                return "backend.%s debe ser una lista de nombres de función" % k
+    if fe is not None:
+        if not isinstance(fe, dict):
+            return "frontend inválido"
+        for k in ("tarjeta", "js"):
+            if k in fe:
+                f = _dentro(d, str(fe[k]))
+                if not f or not f.is_file():
+                    return "frontend.%s no existe" % k
+        if fe.get("tarjeta") and ('id="%s"' % pid) not in _dentro(d, fe["tarjeta"]).read_text(encoding="utf-8", errors="replace"):
+            return "la tarjeta debe tener id=\"%s\" en su <section>" % pid
+    return None
+
+
+def descubrir_piezas(data):
+    desact = set((leer_json(data / "piezas.json", {}) or {}).get("desactivadas", []))
+    piezas = {}
+    for origen, base in (("incluida", RES / "piezas"), ("instalada", data / "piezas")):
+        if not base.is_dir():
+            continue
+        for d in sorted(base.iterdir()):
+            if not d.is_dir() or d.name.startswith("."):
+                continue
+            m = leer_json(d / "pieza.json")
+            if m is None:
+                continue
+            mm = m if isinstance(m, dict) else {}
+            pid = mm["id"] if isinstance(mm.get("id"), str) else d.name
+            try:
+                orden = float(mm.get("orden", 100))
+            except (TypeError, ValueError):
+                orden = 100.0
+            piezas[pid] = {"id": pid, "dir": d, "manifest": mm, "origen": origen, "nombre": str(mm.get("nombre") or pid)[:40],
+                           "version": str(mm.get("version", ""))[:20], "descripcion": str(mm.get("descripcion", ""))[:300],
+                           "autor": str(mm.get("autor", ""))[:40], "orden": orden, "activa": pid not in desact,
+                           "error": validar_pieza(m, d), "cargada": False}
+    return piezas
+
+
+def _inyectables(ctx):
+    return {"__PCBOX_DATA__": str(ctx["data"]), "__SSH_ON__": ctx["ssh"],
+            "__SSH_MUX__": [] if os.name == "nt" else
+            ["-o", "ControlMaster=auto", "-o", "ControlPath=/tmp/pcbox-portable-%r@%h-%p", "-o", "ControlPersist=600"]}
+
+
+def cargar_piezas(ctx, cargados):
+    # Carga el backend de las piezas activas y devuelve lo que hay que poner en marcha.
+    global PIEZAS
+    PIEZAS = descubrir_piezas(ctx["data"])
+    arranques = []
+    for pid, pz in PIEZAS.items():
+        if not pz["activa"]:
+            continue
+        if pz["error"]:
+            log("  ! pieza %s: %s" % (pid, pz["error"]))
+            continue
+        be = pz["manifest"].get("backend")
+        try:
+            if be:
+                ruta = pz["dir"] / be["archivo"]
+                clave = "pieza_" + pid
+                src, av = parchear(clave, ruta.read_text(encoding="utf-8"), ctx)
+                for a in av:
+                    log("  ! pieza %s: parche sin aplicar (%s)" % (pid, a))
+                mod = types.ModuleType(clave)
+                mod.__file__ = str(ruta)
+                mod.__dict__.update(_inyectables(ctx))
+                exec(compile(src, str(ruta), "exec"), mod.__dict__)
+                sys.modules[clave] = mod
+                cargados[clave] = mod
+                arranques.append((pid, mod, be.get("init", []), be.get("arranque", [])))
+            pz["cargada"] = True
+            log("  + pieza %s v%s" % (pid, pz["version"]))
+        except Exception as e:
+            pz["error"] = "no se pudo cargar (%s: %s)" % (e.__class__.__name__, e)
+            log("  ! pieza %s: %s" % (pid, pz["error"]))
+    return arranques
+
+
+def arrancar_piezas(arranques):
+    for pid, mod, init, arr in arranques:
+        try:
+            for n in init:
+                getattr(mod, n)()
+            for n in arr:
+                hilo(getattr(mod, n))
+        except Exception as e:
+            log("  ! pieza %s: no arrancó (%s: %s)" % (pid, e.__class__.__name__, e))
+
+
+def inyectar_piezas(h):
+    # Pone en dashboard.html el menu, la tarjeta y el JS de las piezas cargadas (en los marcadores DMRSHACK).
+    nav, tarj, js, nom = [], [], [], []
+    for pid, pz in sorted(PIEZAS.items(), key=lambda kv: (kv[1]["orden"], kv[0])):
+        if not pz["cargada"]:
+            continue
+        fe = pz["manifest"].get("frontend") or {}
+        d = pz["dir"]
+        try:
+            if fe.get("menu"):
+                nav.append('      <button data-view="%s">%s</button>' % (pid, html.escape(str(fe["menu"]))))
+            if fe.get("tarjeta"):
+                tarj.append((d / fe["tarjeta"]).read_text(encoding="utf-8"))
+                nom.append(", %s: %s" % (json.dumps(pid), json.dumps(pz["nombre"]).replace("</", "<\\/")))
+            if fe.get("js"):
+                # el JS de la pieza se ejecuta con eval dentro de un try: un error suyo no rompe el resto del dashboard
+                lit = json.dumps((d / fe["js"]).read_text(encoding="utf-8")).replace("</", "<\\/")
+                js.append("try{ (0,eval)(%s); }catch(e){ console.error('DMRShack, pieza %s:', e); }" % (lit, pid))
+        except OSError as e:
+            log("  ! pieza %s: no se pudo leer su frontend (%s)" % (pid, e))
+    return (h.replace("<!--DMRSHACK:NAV-->", "\n".join(nav)).replace("<!--DMRSHACK:CARDS-->", "\n".join(tarj))
+             .replace("/*DMRSHACK:JS*/", "\n".join(js)).replace("/*DMRSHACK:NOMBRES*/", "".join(nom)))
+
+
+def _set_activa(data, pid, activa):
+    ruta = data / "piezas.json"
+    est = leer_json(ruta, {}) or {}
+    s = set(est.get("desactivadas", []))
+    (s.discard if activa else s.add)(pid)
+    est["desactivadas"] = sorted(s)
+    guardar_json(ruta, est)
+
+
+def instalar_pieza_zip(data, blob):
+    # Devuelve (True, info) o (False, mensaje). Instala en <datos>/piezas/<id>/.
+    import io
+    import zipfile
+    if len(blob) > MAX_ZIP_PIEZA:
+        return False, "El archivo es demasiado grande (máximo 5 MB)."
+    try:
+        z = zipfile.ZipFile(io.BytesIO(blob))
+    except zipfile.BadZipFile:
+        return False, "No es un archivo .zip válido."
+    items = [i for i in z.infolist() if not i.is_dir()]
+    rutas = [i.filename.replace("\\", "/") for i in items]
+    if not items or len(items) > 60 or sum(i.file_size for i in items) > 20 * 1024 * 1024:
+        return False, "El .zip está vacío o es demasiado grande."
+    for r in rutas:
+        if r.startswith("/") or re.match(r"^[A-Za-z]:", r) or ".." in r.split("/"):
+            return False, "El .zip trae rutas no permitidas."
+    raiz = ""
+    if "pieza.json" not in rutas:
+        tops = {r.split("/")[0] for r in rutas}
+        if len(tops) == 1 and (next(iter(tops)) + "/pieza.json") in rutas:
+            raiz = next(iter(tops)) + "/"
+        else:
+            return False, "No encuentro el pieza.json en el .zip."
+    try:
+        m = json.loads(z.read(raiz + "pieza.json").decode("utf-8"))
+    except Exception:
+        return False, "El pieza.json no se puede leer."
+    pid = m.get("id") if isinstance(m, dict) else None
+    if not isinstance(pid, str) or not RE_ID_PIEZA.match(pid):
+        return False, "El id de la pieza es inválido (minúsculas, números y _; de 2 a 24 caracteres)."
+    base = data / "piezas"
+    tmp_padre = base / ".tmp"
+    shutil.rmtree(tmp_padre, ignore_errors=True)
+    tmp = tmp_padre / pid
+    try:
+        for i, r in zip(items, rutas):
+            if not r.startswith(raiz):
+                continue
+            rel = r[len(raiz):]
+            if Path(rel).suffix.lower() not in EXT_PIEZA:
+                return False, "Archivo no permitido en la pieza: %s" % rel
+            destino = tmp / rel
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_bytes(z.read(i))
+        err = validar_pieza(leer_json(tmp / "pieza.json"), tmp)
+        if err:
+            return False, "Pieza inválida: %s" % err
+        final, viejo = base / pid, base / (".viejo-" + pid)
+        shutil.rmtree(viejo, ignore_errors=True)
+        if final.exists():
+            final.rename(viejo)
+        shutil.move(str(tmp), str(final))
+        shutil.rmtree(viejo, ignore_errors=True)
+        _set_activa(data, pid, True)
+        return True, {"id": pid, "nombre": str(m["nombre"]), "version": str(m["version"])}
+    finally:
+        shutil.rmtree(tmp_padre, ignore_errors=True)
+
+
+def _reiniciar_proceso():
+    def ir():
+        time.sleep(0.8)
+        args = ([sys.executable] if FROZEN else [sys.executable, sys.argv[0]]) + [a for a in sys.argv[1:] if a != "--setup"]
+        if "--no-browser" not in args:
+            args.append("--no-browser")
+        try:
+            os.execv(sys.executable, args)
+        except Exception as e:
+            log("No se pudo reiniciar solo (%s). Ciérralo y ábrelo de nuevo." % e)
+    hilo(ir)
+
+
+def registrar_rutas_piezas(app, cfg):
+    def datos():
+        return Path(app.config["DATA_DIR"])
+
+    def err(msg, codigo):
+        return jsonify({"error": msg}), codigo
+
+    def instalar_ok():
+        # instalar ejecuta codigo: solo desde este equipo, salvo que config.json diga "piezas_remoto": true
+        if (leer_json(app.config["CFG_PATH"], cfg) or {}).get("piezas_remoto"):
+            return True
+        if request.headers.get("X-Forwarded-For") or request.headers.get("Forwarded"):
+            return False
+        return request.remote_addr in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+    def listar():
+        actual = descubrir_piezas(datos())
+        pend = any(i["activa"] and k not in actual for k, i in PIEZAS.items())
+        out = []
+        for pid, pz in sorted(actual.items(), key=lambda kv: (kv[1]["orden"], kv[0])):
+            ini = PIEZAS.get(pid)
+            if (bool(ini and ini["activa"]) != pz["activa"]) or (ini and ini["version"] != pz["version"]):
+                pend = True
+            out.append({k: pz[k] for k in ("id", "nombre", "version", "descripcion", "autor", "origen", "activa", "error")})
+        return jsonify({"piezas": out, "pendiente": pend, "instalar_ok": instalar_ok()})
+
+    def instalar():
+        if not instalar_ok():
+            return err("Por seguridad, las piezas solo se instalan desde el equipo donde corre DMRShack (ábrelo allí en "
+                       "localhost). Para permitirlo desde la red agrega \"piezas_remoto\": true en config.json.", 403)
+        f = request.files.get("zip")
+        if not f:
+            return err("Falta el archivo .zip", 400)
+        ok, res = instalar_pieza_zip(datos(), f.read(MAX_ZIP_PIEZA + 1))
+        if not ok:
+            return err(res, 400)
+        return jsonify({"ok": True, "pieza": res, "reiniciar": True})
+
+    def estado(pid):
+        if not RE_ID_PIEZA.match(pid) or pid not in descubrir_piezas(datos()):
+            return err("Pieza desconocida", 404)
+        _set_activa(datos(), pid, bool((request.get_json(silent=True) or {}).get("activa")))
+        return jsonify({"ok": True, "reiniciar": True})
+
+    def quitar(pid):
+        if not RE_ID_PIEZA.match(pid):
+            return err("Pieza desconocida", 404)
+        d = datos() / "piezas" / pid
+        if not d.is_dir():
+            return err("Es una pieza incluida con DMRShack: no se puede quitar, pero sí desactivar.", 400)
+        shutil.rmtree(d)
+        _set_activa(datos(), pid, True)
+        return jsonify({"ok": True, "reiniciar": True})
+
+    def reiniciar():
+        _reiniciar_proceso()
+        return jsonify({"ok": True})
+
+    app.add_url_rule("/api/piezas", "portable.pz_listar", listar)
+    app.add_url_rule("/api/piezas/instalar", "portable.pz_instalar", instalar, methods=["POST"])
+    app.add_url_rule("/api/piezas/reiniciar", "portable.pz_reiniciar", reiniciar, methods=["POST"])
+    app.add_url_rule("/api/piezas/<pid>/estado", "portable.pz_estado", estado, methods=["POST"])
+    app.add_url_rule("/api/piezas/<pid>", "portable.pz_quitar", quitar, methods=["DELETE"])
+
+
 # ---------------------------------------------------------------- dashboard.html adaptado
 def html_dashboard(cfg):
     """El mismo dashboard.html de pcbox: los endpoints pasan al mismo origen y se pone la identidad del usuario."""
     h = (RES / "dashboard.html").read_text(encoding="utf-8")
+    h = inyectar_piezas(h)
     h = re.sub(r"'http://'\s*\+\s*location\.hostname\s*\+\s*':\d{4}", "location.origin + '", h)
     h = h.replace("'http://' + location.hostname + ':' + puerto + ruta", "location.origin + ruta")
     h = h.replace("url.indexOf(':5011/api/ranking')", "url.indexOf('/api/ranking')")   # antes distinguia por puerto
@@ -532,6 +837,7 @@ def crear_app(cargados, cfg):
                      lambda: jsonify(revisar_actualizacion(request.args.get("fresh") == "1")))
     app.add_url_rule("/api/portable/update-apply", "portable.upd_apply",
                      lambda: jsonify(aplicar_actualizacion()), methods=["POST"])
+    registrar_rutas_piezas(app, cfg)
     return app
 
 
@@ -575,6 +881,7 @@ def main():
     ctx = {"cfg": cfg, "data": data, "port": port, "ssh": ssh}
     log("Cargando servicios…")
     cargados = cargar_modulos(ctx)
+    arranques_piezas = cargar_piezas(ctx, cargados)
     app = crear_app(cargados, cfg)
     app.config.update(CFG_PATH=str(cfg_path), SSH_ON=ssh, DATA_DIR=str(data))
     for clave, _ in MODULOS:
@@ -583,6 +890,7 @@ def main():
                 ARRANQUE[clave](cargados[clave])
             except Exception as e:
                 log("  ! %s: no arrancó (%s: %s)" % (clave, e.__class__.__name__, e))
+    arrancar_piezas(arranques_piezas)
 
     url = "http://localhost:%d/" % port
     log("Listo: %s   (Ctrl+C para cerrar)" % url)
