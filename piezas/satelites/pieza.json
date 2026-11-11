@@ -1,0 +1,19 @@
+{
+  "id": "satelites",
+  "nombre": "Satélites",
+  "version": "1.0.0",
+  "descripcion": "Pasadas de satélites sobre tu ubicación, con aviso previo, mapa de la ruta y lista configurable.",
+  "autor": "CA3PVF",
+  "orden": 40,
+  "backend": {
+    "archivo": "servicio.py",
+    "arranque": [
+      "bucle"
+    ]
+  },
+  "frontend": {
+    "menu": "Satélites",
+    "tarjeta": "tarjeta.html",
+    "js": "tarjeta.js"
+  }
+}

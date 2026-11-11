@@ -1,0 +1,19 @@
+      <section class="card" id="satelites" style="--accent:#ff9f1a">
+        <div class="card-head">
+          <span class="card-title">SATÉLITES</span>
+          <span class="card-meta"><button type="button" class="lh-chip" id="sat-cfg-btn" title="Configurar">⚙</button> <span id="sat-meta">--</span></span>
+        </div>
+        <div class="card-body" style="padding:10px 14px;overflow:auto;">
+          <div id="sat-cfg" style="display:none;margin-bottom:10px;">
+            <label>Satélites (nombres o números NORAD, separados por coma)<input type="text" id="sat-c-sats" placeholder="ISS, SO-50, 25544" style="width:100%"></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+              <label>Elevación mínima (°) <input type="number" id="sat-c-el" min="0" max="80" style="width:80px"></label>
+              <label>Aviso (min antes) <input type="number" id="sat-c-lead" min="1" max="1440" style="width:80px"></label>
+              <button type="button" class="qsl-btn primary" id="sat-c-ok" style="align-self:flex-end;">Guardar</button>
+            </div>
+            <div id="sat-c-msg" style="font-size:0.85em;margin-top:6px;color:var(--text-dim)"></div>
+          </div>
+          <div id="sat-prox"></div>
+          <div id="sat-lista"></div>
+        </div>
+      </section>

@@ -51,7 +51,6 @@ MODULOS = [
     ("mail", "mail_service.py"),
     ("contactos", "contactos_service.py"),
     ("hscard", "hscard_service.py"),
-    ("sat", "sat_service.py"),
     ("aprs", "aprs_service.py"),
     ("salud", "salud_lite.py"),
     ("rec", "rec_service.py"),
@@ -86,7 +85,6 @@ ARRANQUE = {
     "protocols": lambda m: (hilo(m._protocols_loop), hilo(m._active_qso_loop)),
     "system": lambda m: hilo(m.muestrear),
     "contactos": lambda m: (m.db().close(), hilo(m._auto_sync)),
-    "sat": lambda m: hilo(m.bucle),
     "aprs": lambda m: (m.init_db(), m.cargar_config(),
                        [hilo(f) for f in (m.conectar_loop, m.reintentos_loop, m.baliza_loop)]),
     "salud": lambda m: hilo(m.bucle),
@@ -407,7 +405,7 @@ def montar(app, cargados):
 RE_ID_PIEZA = re.compile(r"^[a-z][a-z0-9_]{1,23}$")
 RE_VER_PIEZA = re.compile(r"^\d+(\.\d+){0,3}$")
 RE_FUNC = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}$")
-VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "satelites", "grabaciones", "salud",
+VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "grabaciones", "salud",
                  "ranking", "brandmeister", "protocolos", "guardia", "qsl", "config", "hsnx", "radioid", "piezas"}
 EXT_PIEZA = {".json", ".py", ".html", ".js", ".css", ".md", ".txt", ".png", ".svg", ".jpg", ".gif"}
 MAX_ZIP_PIEZA = 5 * 1024 * 1024
