@@ -400,7 +400,7 @@ def montar(app, cargados):
 RE_ID_PIEZA = re.compile(r"^[a-z][a-z0-9_]{1,23}$")
 RE_VER_PIEZA = re.compile(r"^\d+(\.\d+){0,3}$")
 RE_FUNC = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}$")
-VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "salud",
+VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc",
                  "ranking", "brandmeister", "protocolos", "guardia", "qsl", "config", "hsnx", "radioid", "piezas"}
 EXT_PIEZA = {".json", ".py", ".html", ".js", ".css", ".md", ".txt", ".png", ".svg", ".jpg", ".gif"}
 MAX_ZIP_PIEZA = 5 * 1024 * 1024
@@ -419,7 +419,7 @@ def validar_pieza(m, d):
     pid = m.get("id")
     if not isinstance(pid, str) or not RE_ID_PIEZA.match(pid):
         return "id inválido (minúsculas, números y _; de 2 a 24 caracteres)"
-    if pid in VISTAS_NUCLEO or pid in {k for k, _ in MODULOS}:
+    if pid in VISTAS_NUCLEO or (m.get("backend") and pid in {k for k, _ in MODULOS}):
         return "el id '%s' está reservado por el núcleo" % pid
     if d.name != pid:
         return "la carpeta debe llamarse igual que el id ('%s')" % pid
