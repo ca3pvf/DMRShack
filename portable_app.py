@@ -53,7 +53,6 @@ MODULOS = [
     ("hscard", "hscard_service.py"),
     ("aprs", "aprs_service.py"),
     ("salud", "salud_lite.py"),
-    ("ubicacion", "ubicacion_service.py"),
 ]
 
 

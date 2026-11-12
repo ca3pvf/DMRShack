@@ -1,0 +1,14 @@
+{
+  "id": "ubicacion",
+  "nombre": "Ubicación del colega",
+  "version": "1.0.0",
+  "descripcion": "Botón 📍 en la tarjeta RadioID: ubicación posible de un colega en un mapa (APRS, HamQTH o RadioID).",
+  "autor": "CA3PVF",
+  "orden": 50,
+  "backend": {
+    "archivo": "servicio.py"
+  },
+  "frontend": {
+    "js": "boton.js"
+  }
+}
