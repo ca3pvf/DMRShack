@@ -1,0 +1,22 @@
+{
+  "id": "grabaciones",
+  "nombre": "Grabaciones",
+  "version": "1.0.0",
+  "descripcion": "Grabador de QSO del hotspot: explorador con escucha, MP3, favoritas y envío por correo o WhatsApp; instala el grabador en el hotspot y prepara el decodificador.",
+  "autor": "CA3PVF",
+  "orden": 50,
+  "backend": {
+    "archivo": "servicio.py",
+    "arranque": [
+      "bucle"
+    ],
+    "entorno": {
+      "REC_DIR": "{datos}/dmr_rec"
+    }
+  },
+  "frontend": {
+    "menu": "Grabaciones",
+    "tarjeta": "tarjeta.html",
+    "js": "tarjeta.js"
+  }
+}

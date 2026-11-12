@@ -1,0 +1,62 @@
+      <section class="card" id="grabaciones" style="--accent:#c77dff">
+        <div class="card-head">
+          <span class="card-title">GRABACIONES DE QSO</span>
+          <span class="card-meta"><button type="button" class="lh-chip" id="rec-sync" title="Traer las grabaciones nuevas del hotspot">↻ Sincronizar</button> <span id="rec-meta">--</span></span>
+        </div>
+        <div class="card-body" style="padding:10px 14px;">
+          <div id="rec-filtros" style="font-size:0.88em;margin-bottom:6px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <input type="text" id="rec-q" placeholder="Indicativo, ID o TG" style="width:170px">
+              <label><input type="checkbox" id="rec-solofav"> Solo ★</label>
+              <button type="button" class="lh-chip" id="rec-limpiar">Limpiar filtros</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+              <label>Desde <input type="date" id="rec-desde"></label>
+              <label>Hasta <input type="date" id="rec-hasta"></label>
+              <label>Duración mín. <input type="number" id="rec-dmin" min="0" style="width:64px"> s</label>
+              <label>máx. <input type="number" id="rec-dmax" min="0" style="width:64px"> s</label>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+              <label>Ordenar por <select id="rec-orden"><option value="fecha">Fecha</option><option value="indicativo">Indicativo</option><option value="tg">TG</option><option value="duracion">Duración</option></select></label>
+              <select id="rec-dir"><option value="desc">Descendente</option><option value="asc">Ascendente</option></select>
+            </div>
+          </div>
+          <label style="font-size:0.88em;display:block;margin-bottom:4px;"><input type="checkbox" id="rec-auto" checked> Pasar a la siguiente al terminar</label>
+          <div id="rec-lista" style="max-height:230px;overflow-y:auto;"><div class="lh-empty">Cargando…</div></div>
+          <div id="rec-player" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;font-size:0.9em;">
+            <div id="rec-info" style="font-weight:600;margin-bottom:4px;"></div>
+            <audio id="rec-audio" controls style="width:100%"></audio>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+              <button type="button" class="lh-chip" id="rec-prev">◀ Anterior</button>
+              <button type="button" class="lh-chip" id="rec-next">Siguiente ▶</button>
+              <button type="button" class="lh-chip" id="rec-fav">☆ Marcar</button>
+              <a class="lh-chip" id="rec-mp3" href="#" style="text-decoration:none">⬇ Convertir a MP3</a>
+              <button type="button" class="lh-chip" id="rec-del">🗑 Borrar</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+              <input type="email" id="rec-mail" placeholder="correo@destino.com" style="width:220px">
+              <button type="button" class="lh-chip" id="rec-send">✉ Enviar MP3</button>
+              <input type="text" id="rec-tel" inputmode="tel" placeholder="+56999998888" maxlength="16" autocomplete="off" style="width:150px">
+              <button type="button" class="lh-chip" id="rec-wa">💬 WhatsApp</button>
+              <span id="rec-msg" style="opacity:.85"></span>
+            </div>
+          </div>
+        </div>
+
+        <details id="rec-conf" style="margin-top:10px">
+          <summary style="cursor:pointer;font-size:0.88em">⚙ Configurar el grabador (hotspot y decodificador)</summary>
+          <div id="cfg-panel-grabador">
+<div class="cfg-box"><div class="cfg-box-title">Grabador de QSO</div>
+              <div id="rs-estado" class="qsl-hint">Consultando…</div>
+              <div class="qsl-field-row" style="margin-top:10px">
+                <button type="button" class="qsl-btn" id="rs-act">Actualizar estado</button>
+                <button type="button" class="qsl-btn" id="rs-inst">Instalar grabador en el hotspot</button>
+                <button type="button" class="qsl-btn" id="rs-quit">Quitar grabador</button>
+                <button type="button" class="qsl-btn" id="rs-dec">Preparar decodificador</button>
+              </div>
+              <div id="rs-msg" class="qsl-hint" style="white-space:pre-wrap"></div>
+              <div class="qsl-hint" style="margin-top:8px">El grabador guarda cada transmisión en la memoria del hotspot (se pierde al reiniciarlo); la tarjeta Grabaciones las copia a este equipo. Usa el primer hotspot de la lista. El decodificador (mbelib) se compila en este equipo y solo está disponible en Linux y macOS.</div>
+            </div>
+          </div>
+        </details>
+      </section>

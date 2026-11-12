@@ -53,7 +53,6 @@ MODULOS = [
     ("hscard", "hscard_service.py"),
     ("aprs", "aprs_service.py"),
     ("salud", "salud_lite.py"),
-    ("rec", "rec_service.py"),
     ("ubicacion", "ubicacion_service.py"),
 ]
 
@@ -88,7 +87,6 @@ ARRANQUE = {
     "aprs": lambda m: (m.init_db(), m.cargar_config(),
                        [hilo(f) for f in (m.conectar_loop, m.reintentos_loop, m.baliza_loop)]),
     "salud": lambda m: hilo(m.bucle),
-    "rec": lambda m: hilo(m.bucle),
 }
 
 
@@ -360,10 +358,6 @@ def cargar_modulos(ctx):
             log("  - %s: archivo no incluido, se omite" % archivo)
             continue
         try:
-            if clave == "rec":
-                if "mail" in cargados:
-                    sys.modules["mail_service"] = cargados["mail"]
-                os.environ.setdefault("REC_DIR", os.path.join(str(ctx["data"]), "dmr_rec"))
             src, av = parchear(clave, ruta.read_text(encoding="utf-8"), ctx)
             for a in av:
                 log("  ! %s: parche sin aplicar (%s)" % (archivo, a))
@@ -372,6 +366,7 @@ def cargar_modulos(ctx):
             mod.__dict__.update(inyectado)
             exec(compile(src, str(ruta), "exec"), mod.__dict__)
             sys.modules[clave] = mod
+            sys.modules[ruta.stem] = mod      # las piezas pueden importar un servicio del núcleo por su nombre de archivo
             cargados[clave] = mod
         except Exception as e:
             log("  ! %s: no se pudo cargar (%s: %s)" % (archivo, e.__class__.__name__, e))
@@ -405,7 +400,7 @@ def montar(app, cargados):
 RE_ID_PIEZA = re.compile(r"^[a-z][a-z0-9_]{1,23}$")
 RE_VER_PIEZA = re.compile(r"^\d+(\.\d+){0,3}$")
 RE_FUNC = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}$")
-VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "grabaciones", "salud",
+VISTAS_NUCLEO = {"general", "sistema", "hotspot", "lastheard", "aprs", "botc", "salud",
                  "ranking", "brandmeister", "protocolos", "guardia", "qsl", "config", "hsnx", "radioid", "piezas"}
 EXT_PIEZA = {".json", ".py", ".html", ".js", ".css", ".md", ".txt", ".png", ".svg", ".jpg", ".gif"}
 MAX_ZIP_PIEZA = 5 * 1024 * 1024
@@ -506,6 +501,9 @@ def cargar_piezas(ctx, cargados):
                 src, av = parchear(clave, ruta.read_text(encoding="utf-8"), ctx)
                 for a in av:
                     log("  ! pieza %s: parche sin aplicar (%s)" % (pid, a))
+                if isinstance(be.get("entorno"), dict):      # variables de entorno que pide la pieza ({datos} = carpeta de datos)
+                    for k, v in be["entorno"].items():
+                        os.environ.setdefault(str(k), str(v).replace("{datos}", str(ctx["data"])))
                 mod = types.ModuleType(clave)
                 mod.__file__ = str(ruta)
                 mod.__dict__.update(_inyectables(ctx))
