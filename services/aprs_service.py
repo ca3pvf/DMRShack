@@ -32,6 +32,7 @@ except ImportError:
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.environ.get("APRS_CONFIG", os.path.join(BASE_DIR, "aprs_config.json"))
+CORE_CFG = os.path.join(os.path.dirname(CONFIG_PATH), "config.json")   # ubicación de la estación (núcleo)
 DB_PATH = os.environ.get("APRS_DB", os.path.join(BASE_DIR, "aprs.db"))
 BOT_PATH = os.environ.get("APRS_BOT", os.path.join(BASE_DIR, "aprs_bot.json"))
 PORT = int(os.environ.get("APRS_PORT", "5014"))
@@ -91,6 +92,9 @@ def cargar_config():
         pass
     except Exception as e:
         print(f"aprs_config.json ilegible, uso valores por defecto: {e}", flush=True)
+    nuc = _ubicacion_nucleo()
+    if nuc:
+        cfg["lat"], cfg["lon"] = nuc
     with _lock:
         CFG.clear()
         CFG.update(cfg)
@@ -105,6 +109,30 @@ def guardar_config():
     with open(tmp, "w") as f:
         json.dump(datos, f, indent=2)
     os.replace(tmp, CONFIG_PATH)
+
+
+def _ubicacion_nucleo():
+    # La ubicación de la estación vive en config.json (núcleo); aprs_config.json solo la refleja
+    try:
+        with open(CORE_CFG, encoding="utf-8") as f:
+            n = json.load(f)
+        la, lo = float(n["lat"]), float(n["lon"])
+        return (la, lo) if (la or lo) else None
+    except Exception:
+        return None
+
+
+def _guardar_ubicacion_nucleo(lat, lon):
+    try:
+        with open(CORE_CFG, encoding="utf-8") as f:
+            n = json.load(f)
+    except Exception:
+        return          # sin config.json del núcleo (instalación antigua): no se crea
+    n["lat"], n["lon"] = lat, lon
+    tmp = CORE_CFG + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(n, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, CORE_CFG)
 
 
 def mi_call():
@@ -1102,6 +1130,8 @@ def api_config_post():
         radio_nuevo = "radius_km" in cambios and cambios["radius_km"] != CFG.get("radius_km")
         CFG.update(cambios)
     guardar_config()
+    if "lat" in cambios or "lon" in cambios:
+        _guardar_ubicacion_nucleo(CFG["lat"], CFG["lon"])
     if reconectar:
         with _sock_lock:
             if _sock is not None:

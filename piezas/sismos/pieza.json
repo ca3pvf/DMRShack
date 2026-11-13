@@ -1,7 +1,7 @@
 {
   "id": "sismos",
   "nombre": "Sismos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "descripcion": "Sismos recientes de Chile (CSN) y del mundo (USGS), con alerta visual por distancia y mapa.",
   "autor": "CA3PVF",
   "orden": 80,

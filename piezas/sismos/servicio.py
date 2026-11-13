@@ -91,16 +91,23 @@ def bucle():
         time.sleep(POLL_S)
 
 
-APRS_CFG = os.path.join(BASE, "aprs_config.json")
+_DATOS = globals().get("__PCBOX_DATA__") or BASE
+CORE_CFG = os.path.join(_DATOS, "config.json")
+APRS_CFG = os.path.join(_DATOS, "aprs_config.json")
 
 
 def _ubicacion():
-    try:
-        with open(APRS_CFG) as f:
-            a = json.load(f)
-        return float(a["lat"]), float(a["lon"])
-    except Exception:
-        return None
+    # Ubicación de la estación: la del núcleo (config.json); si no hay, la de aprs_config.json (instalaciones antiguas)
+    for ruta in (CORE_CFG, APRS_CFG):
+        try:
+            with open(ruta, encoding="utf-8") as f:
+                a = json.load(f)
+            la, lo = float(a["lat"]), float(a["lon"])
+            if la or lo:
+                return la, lo
+        except Exception:
+            continue
+    return None
 
 
 def _km(lat1, lon1, lat2, lon2):
