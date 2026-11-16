@@ -1,0 +1,19 @@
+{
+  "id": "mail",
+  "nombre": "Correo (Gmail)",
+  "version": "1.0.0",
+  "descripcion": "Envío de QSL por correo con Gmail (contraseña de aplicación): envío manual y automático, enlace temporal y dibujo de la QSL en el servidor.",
+  "autor": "CA3PVF",
+  "orden": 40,
+  "backend": {
+    "archivo": "servicio.py",
+    "alias": "mail_service"
+  },
+  "frontend": {
+    "js": "config.js",
+    "config": {
+      "pestana": "Correo (Gmail)",
+      "panel": "config.html"
+    }
+  }
+}

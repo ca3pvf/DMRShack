@@ -1267,14 +1267,14 @@ def bot_requisitos():
         add("cola", "Cola QSL (almacén)", "ok", "disponible")
     m = _req_get("http://127.0.0.1:5017/api/mail/status")
     if m is None:
-        add("gmail", "Correo (Gmail)", "error" if c.get("auto") else "aviso", "el servicio de correo no responde (puerto 5017)", "gmail")
+        add("gmail", "Correo (Gmail)", "error" if c.get("auto") else "aviso", "el servicio de correo no responde (puerto 5017)", "mail")
     elif not m.get("configured"):
         add("gmail", "Correo (Gmail)", "error" if c.get("auto") else "aviso",
-            "sin configurar" + ("; el envío automático no puede enviar" if c.get("auto") else ""), "gmail")
+            "sin configurar" + ("; el envío automático no puede enviar" if c.get("auto") else ""), "mail")
     elif m.get("ok") is False:
-        add("gmail", "Correo (Gmail)", "error", "el último envío falló: %s" % str(m.get("error"))[:80], "gmail")
+        add("gmail", "Correo (Gmail)", "error", "el último envío falló: %s" % str(m.get("error"))[:80], "mail")
     else:
-        add("gmail", "Correo (Gmail)", "ok", "%s · %s de %s envíos hoy" % (m.get("address", ""), m.get("enviados_hoy", 0), m.get("limite_diario", "?")), "gmail")
+        add("gmail", "Correo (Gmail)", "ok", "%s · %s de %s envíos hoy" % (m.get("address", ""), m.get("enviados_hoy", 0), m.get("limite_diario", "?")), "mail")
     d = _req_get("http://127.0.0.1:5013/api/store/config/pcbox-qsl-design")
     if d is not None and not d.get("value"):
         add("diseno", "Diseño de la QSL", "aviso", "sin diseño guardado: se usará el diseño por defecto", "qsl")

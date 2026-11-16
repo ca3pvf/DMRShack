@@ -2,13 +2,13 @@
 """pcbox - libreta de contactos con correo (puerto 5018).
 Guarda indicativo, nombre, correo, pais y notas en contactos.db y exporta a
 Google Contacts (CSV), Outlook (CSV) y vCard (.vcf, para Apple/Thunderbird/otros)."""
-import csv, io, json, os, re, sqlite3, threading, time, urllib.request
+import csv, io, json, os, re, sqlite3, sys, threading, time, urllib.request
 from datetime import datetime
 from flask import Flask, Response, jsonify, request
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = globals().get("__PCBOX_DATA__") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.environ.get("CONTACTOS_DB", os.path.join(BASE, "contactos.db"))
-STORE_DB = os.environ.get("CONTACTOS_STORE_DB", os.path.join(BASE, "pcbox_store.db"))
+STORE_DB = os.environ.get("CONTACTOS_STORE_DB") or getattr(sys.modules.get("store_service"), "DB_PATH", None) or os.path.join(BASE, "pcbox_store.db")
 PORT = int(os.environ.get("CONTACTOS_PORT", "5018"))
 CALL_RE = re.compile(r"^[A-Z0-9]{3,10}$")
 EMAIL_RE = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
@@ -44,10 +44,10 @@ def fila(r):
 
 
 def enriquecer(call):
-    """Nombre y pais desde QRZ (respuesta en cache del servicio QRZ, puerto 5015)."""
+    """Nombre y pais desde QRZ: se llama directo al servicio QRZ del nucleo (con su cache)."""
     try:
-        with urllib.request.urlopen("http://127.0.0.1:5015/api/qrz/lookup?call=" + call, timeout=20) as r:
-            d = json.loads(r.read().decode("utf-8"))
+        q = sys.modules.get("qrz_service")
+        d = q.lookup(call) if q else {}
         return (d.get("name") or "").strip(), (d.get("country") or "").strip()
     except Exception:
         return "", ""
@@ -118,7 +118,7 @@ def sync_cola(max_enriquecer=10):
     return nuevos, rep
 
 
-def _auto_sync():
+def bucle_sync():
     time.sleep(20)
     while True:
         try:
@@ -259,7 +259,5 @@ def api_export():
                     headers={"Content-Disposition": 'attachment; filename="%s"' % nombre})
 
 
-if __name__ == "__main__":
+def iniciar():
     db().close()
-    threading.Thread(target=_auto_sync, daemon=True).start()
-    app.run(host="0.0.0.0", port=PORT, threaded=True)

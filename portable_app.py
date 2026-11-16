@@ -48,8 +48,6 @@ MODULOS = [
     ("system", "system_status.py"),
     ("radioid", "radioid_service.py"),
     ("qrz", "qrz_service.py"),
-    ("mail", "mail_service.py"),
-    ("contactos", "contactos_service.py"),
     ("hscard", "hscard_service.py"),
     ("aprs", "aprs_service.py"),
     ("salud", "salud_lite.py"),
@@ -447,6 +445,17 @@ def validar_pieza(m, d):
                     return "frontend.%s no existe" % k
         if fe.get("tarjeta") and ('id="%s"' % pid) not in _dentro(d, fe["tarjeta"]).read_text(encoding="utf-8", errors="replace"):
             return "la tarjeta debe tener id=\"%s\" en su <section>" % pid
+        cf = fe.get("config")
+        if cf is not None:
+            if not isinstance(cf, dict) or not isinstance(cf.get("pestana"), str) or not 1 <= len(cf["pestana"]) <= 24:
+                return "frontend.config.pestana falta (hasta 24 caracteres)"
+            f = _dentro(d, str(cf.get("panel", "")))
+            if not f or not f.is_file():
+                return "frontend.config.panel no existe"
+    rq = m.get("requiere")
+    if rq is not None:
+        if not isinstance(rq, list) or len(rq) > 8 or not all(isinstance(x, str) and RE_ID_PIEZA.match(x) and x != pid for x in rq):
+            return "requiere debe ser una lista de ids de pieza (hasta 8)"
     return None
 
 
@@ -475,6 +484,57 @@ def descubrir_piezas(data):
     return piezas
 
 
+def _requeridas(pz):
+    r = pz["manifest"].get("requiere")
+    return [x for x in r if isinstance(x, str)] if isinstance(r, list) else []
+
+
+def orden_carga(piezas):
+    # Orden de carga: las piezas requeridas antes que las que las necesitan (un ciclo no cuelga: ambas quedan sin cargar).
+    orden, visto = [], set()
+
+    def visita(pid):
+        if pid in visto:
+            return
+        visto.add(pid)
+        for r in _requeridas(piezas[pid]):
+            if r in piezas:
+                visita(r)
+        orden.append(pid)
+
+    for pid in piezas:
+        visita(pid)
+    return orden
+
+
+def dependencias_pendientes(actual, pid):
+    # Lo que falta para que 'pid' funcione: piezas no instaladas, con error o desactivadas (incluye las de sus requeridas).
+    faltan, vistos = [], {pid}
+
+    def visita(q):
+        for r in _requeridas(actual[q]):
+            if r in vistos:
+                continue
+            vistos.add(r)
+            d = actual.get(r)
+            if d is None:
+                faltan.append({"id": r, "nombre": r, "estado": "no instalada"})
+            elif d["error"]:
+                faltan.append({"id": r, "nombre": d["nombre"], "estado": "con error"})
+            else:
+                if not d["activa"]:
+                    faltan.append({"id": r, "nombre": d["nombre"], "estado": "desactivada"})
+                visita(r)
+
+    visita(pid)
+    return faltan
+
+
+def usadas_por(actual, pid):
+    # Piezas activas que necesitan a 'pid'.
+    return [k for k, v in actual.items() if k != pid and v["activa"] and not v["error"] and pid in _requeridas(v)]
+
+
 def _inyectables(ctx):
     return {"__PCBOX_DATA__": str(ctx["data"]), "__SSH_ON__": ctx["ssh"],
             "__SSH_MUX__": [] if os.name == "nt" else
@@ -486,16 +546,24 @@ def cargar_piezas(ctx, cargados):
     global PIEZAS
     PIEZAS = descubrir_piezas(ctx["data"])
     arranques = []
-    for pid, pz in PIEZAS.items():
+    for pid in orden_carga(PIEZAS):
+        pz = PIEZAS[pid]
         if not pz["activa"]:
             continue
         if pz["error"]:
             log("  ! pieza %s: %s" % (pid, pz["error"]))
             continue
+        falta = [r for r in _requeridas(pz) if not (r in PIEZAS and PIEZAS[r]["cargada"])]
+        if falta:
+            pz["falta"] = falta
+            log("  ! pieza %s: necesita %s (no está cargada)" % (pid, ", ".join(PIEZAS[r]["nombre"] if r in PIEZAS else r for r in falta)))
+            continue
         be = pz["manifest"].get("backend")
         try:
             if be:
                 ruta = pz["dir"] / be["archivo"]
+                if str(pz["dir"]) not in sys.path:      # la pieza puede traer módulos propios (ej. qsl_render)
+                    sys.path.insert(0, str(pz["dir"]))
                 clave = "pieza_" + pid
                 src, av = parchear(clave, ruta.read_text(encoding="utf-8"), ctx)
                 for a in av:
@@ -508,6 +576,8 @@ def cargar_piezas(ctx, cargados):
                 mod.__dict__.update(_inyectables(ctx))
                 exec(compile(src, str(ruta), "exec"), mod.__dict__)
                 sys.modules[clave] = mod
+                if isinstance(be.get("alias"), str) and RE_FUNC.match(be["alias"]):
+                    sys.modules[be["alias"]] = mod      # otras piezas pueden importarla por este nombre
                 cargados[clave] = mod
                 arranques.append((pid, mod, be.get("init", []), be.get("arranque", [])))
             pz["cargada"] = True
@@ -531,7 +601,9 @@ def arrancar_piezas(arranques):
 
 def inyectar_piezas(h):
     # Pone en dashboard.html el menu, la tarjeta y el JS de las piezas cargadas (en los marcadores DMRSHACK).
-    nav, tarj, js, nom = [], [], [], []
+    nav, tarj, js, nom, ctab, cpan = [], [], [], [], [], []
+    cargadas = ", ".join("%s: %s" % (json.dumps(k), json.dumps(v["nombre"]).replace("</", "<\\/"))
+                         for k, v in sorted(PIEZAS.items()) if v["cargada"])
     for pid, pz in sorted(PIEZAS.items(), key=lambda kv: (kv[1]["orden"], kv[0])):
         if not pz["cargada"]:
             continue
@@ -543,14 +615,18 @@ def inyectar_piezas(h):
             if fe.get("tarjeta"):
                 tarj.append((d / fe["tarjeta"]).read_text(encoding="utf-8"))
                 nom.append(", %s: %s" % (json.dumps(pid), json.dumps(pz["nombre"]).replace("</", "<\\/")))
+            if isinstance(fe.get("config"), dict):
+                cf = fe["config"]
+                ctab.append('            <button class="cfg-tab" data-cfg="%s">%s</button>' % (pid, html.escape(str(cf["pestana"]))))
+                cpan.append('          <div class="cfg-panel" id="cfg-panel-%s">\n%s\n          </div>' % (pid, (d / cf["panel"]).read_text(encoding="utf-8")))
             if fe.get("js"):
                 # el JS de la pieza se ejecuta con eval dentro de un try: un error suyo no rompe el resto del dashboard
                 lit = json.dumps((d / fe["js"]).read_text(encoding="utf-8")).replace("</", "<\\/")
                 js.append("try{ (0,eval)(%s); }catch(e){ console.error('DMRShack, pieza %s:', e); }" % (lit, pid))
         except OSError as e:
             log("  ! pieza %s: no se pudo leer su frontend (%s)" % (pid, e))
-    return (h.replace("<!--DMRSHACK:NAV-->", "\n".join(nav)).replace("<!--DMRSHACK:CARDS-->", "\n".join(tarj))
-             .replace("/*DMRSHACK:JS*/", "\n".join(js)).replace("/*DMRSHACK:NOMBRES*/", "".join(nom)))
+    return (h.replace("<!--DMRSHACK:NAV-->", "\n".join(nav)).replace("<!--DMRSHACK:CARDS-->", "\n".join(tarj)).replace("<!--DMRSHACK:CFGTABS-->", "\n".join(ctab)).replace("<!--DMRSHACK:CFGPANELS-->", "\n".join(cpan))
+             .replace("/*DMRSHACK:PIEZAS*/", cargadas).replace("/*DMRSHACK:JS*/", "\n".join(js)).replace("/*DMRSHACK:NOMBRES*/", "".join(nom)))
 
 
 def _set_activa(data, pid, activa):
@@ -658,7 +734,11 @@ def registrar_rutas_piezas(app, cfg):
             ini = PIEZAS.get(pid)
             if (bool(ini and ini["activa"]) != pz["activa"]) or (ini and ini["version"] != pz["version"]):
                 pend = True
-            out.append({k: pz[k] for k in ("id", "nombre", "version", "descripcion", "autor", "origen", "activa", "error")})
+            fila = {k: pz[k] for k in ("id", "nombre", "version", "descripcion", "autor", "origen", "activa", "error")}
+            fila["requiere"] = [{"id": r, "nombre": actual[r]["nombre"] if r in actual else r} for r in _requeridas(pz)]
+            fila["faltan"] = dependencias_pendientes(actual, pid)
+            fila["usada_por"] = [actual[k]["nombre"] for k in usadas_por(actual, pid)]
+            out.append(fila)
         return jsonify({"piezas": out, "pendiente": pend, "instalar_ok": instalar_ok()})
 
     def instalar():
@@ -674,9 +754,24 @@ def registrar_rutas_piezas(app, cfg):
         return jsonify({"ok": True, "pieza": res, "reiniciar": True})
 
     def estado(pid):
-        if not RE_ID_PIEZA.match(pid) or pid not in descubrir_piezas(datos()):
+        actual = descubrir_piezas(datos())
+        if not RE_ID_PIEZA.match(pid) or pid not in actual:
             return err("Pieza desconocida", 404)
-        _set_activa(datos(), pid, bool((request.get_json(silent=True) or {}).get("activa")))
+        body = request.get_json(silent=True) or {}
+        activa = bool(body.get("activa"))
+        if activa:
+            faltan = dependencias_pendientes(actual, pid)
+            if faltan and (not body.get("con_dependencias") or any(f["estado"] != "desactivada" for f in faltan)):
+                txt = ", ".join("%s (%s)" % (f["nombre"], f["estado"]) for f in faltan)
+                return jsonify({"error": "%s necesita: %s" % (actual[pid]["nombre"], txt), "faltan": faltan}), 409
+            for f in faltan:
+                _set_activa(datos(), f["id"], True)
+        else:
+            usan = [actual[k]["nombre"] for k in usadas_por(actual, pid)]
+            if usan:
+                return jsonify({"error": "%s lo usan: %s. Desactívalas primero." % (actual[pid]["nombre"], ", ".join(usan)),
+                                "usada_por": usan}), 409
+        _set_activa(datos(), pid, activa)
         return jsonify({"ok": True, "reiniciar": True})
 
     def quitar(pid):
@@ -685,6 +780,11 @@ def registrar_rutas_piezas(app, cfg):
         d = datos() / "piezas" / pid
         if not d.is_dir():
             return err("Es una pieza incluida con DMRShack: no se puede quitar, pero sí desactivar.", 400)
+        actual = descubrir_piezas(datos())
+        usan = [actual[k]["nombre"] for k in usadas_por(actual, pid)]
+        if usan:
+            return jsonify({"error": "%s lo usan: %s. Desactívalas primero." % (actual[pid]["nombre"] if pid in actual else pid, ", ".join(usan)),
+                            "usada_por": usan}), 409
         shutil.rmtree(d)
         _set_activa(datos(), pid, True)
         return jsonify({"ok": True, "reiniciar": True})

@@ -1,0 +1,28 @@
+            <div class="cfg-box"><div class="cfg-box-title">Libreta de contactos (con correo)</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+                <input type="text" id="ct-filtro" placeholder="Buscar indicativo, nombre o correo" style="width:250px">
+                <button id="ct-sync">Sincronizar desde cola QSL</button>
+                <span class="nx-sm" id="ct-estado"></span>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+                <input type="text" id="ct-call" placeholder="Indicativo" style="width:110px">
+                <input type="text" id="ct-name" placeholder="Nombre" style="width:170px">
+                <input type="text" id="ct-mail" placeholder="Correo" style="width:210px">
+                <input type="text" id="ct-pais" placeholder="País" style="width:110px">
+                <button id="ct-guardar">Guardar</button>
+                <span class="nx-sm" id="ct-msg"></span>
+              </div>
+              <style>#ct-body a.lh-qrz{color:inherit;text-decoration:inherit}#ct-body a.lh-qrz:hover{text-decoration:underline}</style>
+              <div style="margin-bottom:10px">
+                <div class="qsl-hint" style="margin:0 0 4px">Pegar datos copiados de qrz.com (primera línea: indicativo y país; luego nombre, dirección y «Email: …»)</div>
+                <textarea id="ct-pegar" rows="6" style="width:100%" placeholder="INDICATIVO Chile&#10;Nombre Apellido&#10;Dirección&#10;Ciudad&#10;Chile&#10;&#10;Email: correo@ejemplo.com"></textarea>
+                <button id="ct-pegar-ok">Interpretar y agregar</button> <span class="nx-sm" id="ct-pegar-msg"></span>
+              </div>
+              <div style="max-height:360px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody id="ct-body"></tbody></table></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button data-ctx="google">Exportar Google Contacts (CSV)</button>
+                <button data-ctx="outlook">Exportar Outlook (CSV)</button>
+                <button data-ctx="vcf">Exportar vCard (.vcf)</button>
+              </div>
+              <div class="qsl-hint" style="margin-top:8px">Los correos de la cola QSL (los que encuentra QRZ o escribes a mano) se copian aquí solos cada 5 minutos. Para usarlos en Gmail: contacts.google.com → Importar → elige el CSV de Google.</div>
+            </div>

@@ -30,3 +30,27 @@ mi_pieza/
 - En el JS, los datos se piden a `location.origin + '/api/...'`. Si la pieza falla, el resto del dashboard sigue.
 - Para instalar una pieza: comprimir la carpeta en un .zip y subirlo en Configuración → Piezas (solo desde el equipo
   donde corre DMRShack, porque una pieza ejecuta código).
+
+## Pestaña propia en Configuración
+
+Una pieza puede agregar una pestaña en Configuración con `frontend.config`:
+
+```json
+"frontend": {"config": {"pestana": "Mi pieza", "panel": "config.html"}}
+```
+
+`config.html` es solo el contenido del panel (sin la `<div class="cfg-panel">`, que la pone DMRShack con
+id `cfg-panel-<id de la pieza>`). La pestaña lleva `data-cfg="<id de la pieza>"`; el `js` de la pieza puede
+escuchar su clic para cargar datos. Si la pieza se desactiva, la pestaña desaparece.
+
+## Dependencias entre piezas
+
+Una pieza puede necesitar a otras con `"requiere": ["mail"]` (ids de piezas, hasta 8). Las requeridas se cargan
+primero; si una falta, está desactivada o tiene error, la pieza no arranca y el panel Piezas lo explica y ofrece
+activar la que falta (o pide instalarla). Tampoco se puede desactivar ni quitar una pieza que otras activas necesitan.
+
+Para que otra pieza la importe por nombre (por ejemplo `import mail_service`), el backend declara un alias:
+
+```json
+"backend": {"archivo": "servicio.py", "alias": "mail_service"}
+```

@@ -1,0 +1,24 @@
+{
+  "id": "contactos",
+  "nombre": "Contactos",
+  "version": "1.0.0",
+  "descripcion": "Libreta de contactos con correo: copia los de la cola QSL, importa desde QRZ y exporta a Google, Outlook y vCard.",
+  "autor": "CA3PVF",
+  "orden": 60,
+  "backend": {
+    "archivo": "servicio.py",
+    "init": [
+      "iniciar"
+    ],
+    "arranque": [
+      "bucle_sync"
+    ]
+  },
+  "frontend": {
+    "js": "config.js",
+    "config": {
+      "pestana": "Contactos",
+      "panel": "config.html"
+    }
+  }
+}

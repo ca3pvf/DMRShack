@@ -646,7 +646,7 @@ return {list:list,render:render,mount:mount,flag:flag}
             <div class="qsl-field-row" style="margin-top:6px">
               <button class="qsl-btn" id="qc-mail">Buscar correos en QRZ</button>
               <button class="qsl-btn primary" id="qc-gen">Generar QSL (ZIP)</button>
-              <button class="qsl-btn primary" id="qc-enviar">Enviar por correo</button>
+              <button class="qsl-btn primary" id="qc-enviar" data-requiere-pieza="mail">Enviar por correo</button>
               <button class="qsl-btn" id="qc-adif">Exportar ADIF</button>
               <button class="qsl-btn danger" id="qc-vaciar">Vaciar cola</button>
             </div>
@@ -1026,11 +1026,10 @@ return {list:list,render:render,mount:mount,flag:flag}
             <button class="cfg-tab" data-cfg="qsl">Generador QSL</button>
             <button class="cfg-tab" data-cfg="aprs">APRS</button>
             <button class="cfg-tab" data-cfg="qrz">QRZ.com</button>
-            <button class="cfg-tab" data-cfg="gmail">Correo (Gmail)</button>
             <button class="cfg-tab" data-cfg="bot">Bot concurso</button>
             <button class="cfg-tab" data-cfg="tarjetas">Tarjetas</button>
+            <!--DMRSHACK:CFGTABS-->
             <button class="cfg-tab" data-cfg="piezas">Piezas</button>
-            <button class="cfg-tab" data-cfg="contactos">Contactos</button>
             <button class="cfg-tab" data-cfg="pantalla">Pantalla</button>
             <button class="cfg-tab" data-cfg="apariencia">Apariencia</button>
             <button class="cfg-tab" data-cfg="actualizaciones">Actualizaciones</button>
@@ -1188,34 +1187,6 @@ return {list:list,render:render,mount:mount,flag:flag}
               </div>
               <div id="qz-estado" class="qsl-hint"></div>
               <div class="qsl-hint">Las credenciales se guardan solo en pcbox (archivo con permisos restringidos) y no se devuelven al navegador. La contraseña viaja sin cifrar dentro de tu red local hasta pcbox. Los correos solo aparecen si el colega los dejó públicos en su perfil de QRZ.</div>
-            </div>
-          </div>
-          <div class="cfg-panel" id="cfg-panel-gmail">
-            <div class="qsl-config">
-              <div class="qsl-section-label">Cuenta Gmail para enviar QSL (SMTP con contraseña de aplicación)</div>
-              <div class="qsl-field-row">
-                <label>Correo Gmail <input type="text" id="ml-addr" autocomplete="off" placeholder="tucuenta@gmail.com"></label>
-                <label>Contraseña de aplicación <input type="password" id="ml-pass" autocomplete="new-password" placeholder="16 caracteres; vacío = mantener la guardada"></label>
-              </div>
-              <div class="qsl-field-row">
-                <label>Nombre del remitente <input type="text" id="ml-nombre" autocomplete="off" placeholder="@@NOMBRE@@ @@CALL@@"></label>
-                <label>Indicativo en el correo <input type="text" id="ml-op" autocomplete="off" placeholder="@@CALL@@"></label>
-              </div>
-              <div class="qsl-field-row">
-                <label style="flex:1 1 100%">Asunto <input type="text" id="ml-asunto" autocomplete="off" style="width:100%"></label>
-              </div>
-              <div class="qsl-field-row">
-                <label style="flex:1 1 100%">Mensaje <textarea id="ml-cuerpo" rows="6" style="width:100%"></textarea></label>
-              </div>
-              <div class="qsl-hint">En asunto y mensaje puedes usar {dx} (indicativo del colega), {op} (tu indicativo) y {fecha} (fecha del contacto).</div>
-              <div class="qsl-field-row">
-                <button class="qsl-btn primary" id="ml-guardar">Guardar y probar acceso</button>
-                <button class="qsl-btn" id="ml-probar">Enviarme un correo de prueba</button>
-                <button class="qsl-btn danger" id="ml-quitar">Quitar cuenta</button>
-                <span id="ml-msg" style="opacity:.8;font-size:0.85em"></span>
-              </div>
-              <div id="ml-estado" class="qsl-hint"></div>
-              <div class="qsl-hint">Cómo obtener la contraseña de aplicación: en tu cuenta de Google, Seguridad → Verificación en dos pasos (debe estar activada) → Contraseñas de aplicaciones. Se guarda solo en pcbox (archivo con permisos restringidos) y no se devuelve al navegador. La contraseña viaja sin cifrar dentro de tu red local hasta pcbox. Gmail envía siempre desde la cuenta con que inicias sesión. Tope de seguridad: 400 correos por día.</div>
             </div>
           </div>
           <div class="cfg-panel" id="cfg-panel-bot">
@@ -1380,36 +1351,6 @@ return {list:list,render:render,mount:mount,flag:flag}
               <div class="qsl-hint" style="margin-top:8px">El cambio se aplica al instante y se guarda en pcbox (igual en todos tus equipos).</div>
             </div>
           </div>
-          <div class="cfg-panel" id="cfg-panel-contactos">
-            <div class="cfg-box"><div class="cfg-box-title">Libreta de contactos (con correo)</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-                <input type="text" id="ct-filtro" placeholder="Buscar indicativo, nombre o correo" style="width:250px">
-                <button id="ct-sync">Sincronizar desde cola QSL</button>
-                <span class="nx-sm" id="ct-estado"></span>
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-                <input type="text" id="ct-call" placeholder="Indicativo" style="width:110px">
-                <input type="text" id="ct-name" placeholder="Nombre" style="width:170px">
-                <input type="text" id="ct-mail" placeholder="Correo" style="width:210px">
-                <input type="text" id="ct-pais" placeholder="País" style="width:110px">
-                <button id="ct-guardar">Guardar</button>
-                <span class="nx-sm" id="ct-msg"></span>
-              </div>
-              <style>#ct-body a.lh-qrz{color:inherit;text-decoration:inherit}#ct-body a.lh-qrz:hover{text-decoration:underline}</style>
-              <div style="margin-bottom:10px">
-                <div class="qsl-hint" style="margin:0 0 4px">Pegar datos copiados de qrz.com (primera línea: indicativo y país; luego nombre, dirección y «Email: …»)</div>
-                <textarea id="ct-pegar" rows="6" style="width:100%" placeholder="INDICATIVO Chile&#10;Nombre Apellido&#10;Dirección&#10;Ciudad&#10;Chile&#10;&#10;Email: correo@ejemplo.com"></textarea>
-                <button id="ct-pegar-ok">Interpretar y agregar</button> <span class="nx-sm" id="ct-pegar-msg"></span>
-              </div>
-              <div style="max-height:360px;overflow:auto"><table style="width:100%;border-collapse:collapse"><tbody id="ct-body"></tbody></table></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                <button data-ctx="google">Exportar Google Contacts (CSV)</button>
-                <button data-ctx="outlook">Exportar Outlook (CSV)</button>
-                <button data-ctx="vcf">Exportar vCard (.vcf)</button>
-              </div>
-              <div class="qsl-hint" style="margin-top:8px">Los correos de la cola QSL (los que encuentra QRZ o escribes a mano) se copian aquí solos cada 5 minutos. Para usarlos en Gmail: contacts.google.com → Importar → elige el CSV de Google.</div>
-            </div>
-          </div>
           <div class="cfg-panel" id="cfg-panel-tarjetas">
             <div class="cfg-box"><div class="cfg-box-title">Tarjetas visibles (en este equipo)</div>
               <div id="tarjetas-lista"></div>
@@ -1418,10 +1359,11 @@ return {list:list,render:render,mount:mount,flag:flag}
               <div class="qsl-hint" style="margin-top:8px">Una tarjeta desmarcada se oculta del menú y deja de consultar su servicio. También puedes cerrarla con la ✕ de su cabecera. La tarjeta Configuración no se puede cerrar.</div>
             </div>
           </div>
+          <!--DMRSHACK:CFGPANELS-->
           <div class="cfg-panel" id="cfg-panel-piezas">
             <div class="cfg-box"><div class="cfg-box-title">Piezas instaladas (módulos de DMRShack)</div>
               <div id="pz-lista"><div class="qsl-hint">Cargando…</div></div>
-              <div id="pz-reinicio" style="display:none;margin-top:10px"><span class="qsl-hint">Hay cambios pendientes: reinicia DMRShack para aplicarlos.</span> <button type="button" class="qsl-btn primary" id="pz-reiniciar">Reiniciar ahora</button></div>
+              <div id="pz-reinicio" style="margin-top:10px"><span class="qsl-hint" id="pz-reinicio-txt">Reinicia DMRShack cuando lo necesites.</span> <button type="button" class="qsl-btn" id="pz-reiniciar">Reiniciar DMRShack</button></div>
             </div>
             <div class="cfg-box"><div class="cfg-box-title">Agregar una pieza</div>
               <input type="file" id="pz-zip" accept=".zip"> <button type="button" class="qsl-btn" id="pz-instalar">Instalar</button>
@@ -2647,54 +2589,9 @@ document.getElementById('qc-body').addEventListener('click', async e => {
   catch(err){ qcMsg('Error: ' + err.message); }
 });
 
-/* ---------- CORREO (GMAIL) ---------- */
+/* ---------- CORREO (GMAIL): la configuración vive en la pieza Mail (piezas/mail/config.js) ---------- */
 const ML_API = 'http://' + location.hostname + ':5017/api/mail';
-function mlMsg(t){ const m = document.getElementById('ml-msg'); m.textContent = t; setTimeout(() => { if(m.textContent === t) m.textContent = ''; }, 8000); }
-async function mlCargar(){
-  const est = document.getElementById('ml-estado');
-  try{
-    const d = await (await fetch(ML_API + '/status')).json();
-    const act = document.activeElement;
-    const set = (id, v) => { const e = document.getElementById(id); if(act !== e) e.value = v; };
-    set('ml-addr', d.address || ''); set('ml-nombre', d.from_name || ''); set('ml-op', d.op_call || '');
-    set('ml-asunto', d.subject || ''); set('ml-cuerpo', d.body || '');
-    if(!d.configured){ est.textContent = 'Sin cuenta guardada.'; return d; }
-    let t = 'Cuenta guardada: ' + d.address + ' · enviados hoy: ' + d.enviados_hoy + ' de ' + d.limite_diario;
-    if(d.ok === false && d.error) t += ' · último error: ' + d.error;
-    est.textContent = t;
-    return d;
-  }catch(e){ est.textContent = 'Sin conexión con el servicio de correo (puerto 5017).'; return null; }
-}
-document.getElementById('ml-guardar').addEventListener('click', async () => {
-  const v = id => document.getElementById(id).value;
-  mlMsg('Probando acceso...');
-  try{
-    const r = await fetch(ML_API + '/config', {method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({address: v('ml-addr').trim(), app_password: v('ml-pass'), from_name: v('ml-nombre'),
-        op_call: v('ml-op'), subject: v('ml-asunto'), body: v('ml-cuerpo')})});
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    document.getElementById('ml-pass').value = '';
-    mlMsg('Acceso correcto, cuenta guardada');
-    mlCargar();
-  }catch(e){ mlMsg('Error: ' + e.message); }
-});
-document.getElementById('ml-probar').addEventListener('click', async () => {
-  mlMsg('Enviando prueba...');
-  try{
-    const r = await fetch(ML_API + '/test', {method: 'POST'});
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    mlMsg('Prueba enviada a ' + d.to);
-    mlCargar();
-  }catch(e){ mlMsg('Error: ' + e.message); }
-});
-document.getElementById('ml-quitar').addEventListener('click', async () => {
-  if(!confirm('¿Quitar la cuenta Gmail y la contraseña guardadas en pcbox?')) return;
-  try{ await fetch(ML_API + '/clear', {method: 'POST'}); document.getElementById('ml-pass').value = ''; mlMsg('Cuenta eliminada'); mlCargar(); }
-  catch(e){ mlMsg('Error: ' + e.message); }
-});
-document.querySelector('[data-cfg="gmail"]').addEventListener('click', mlCargar);
+let mlCargar = async function(){ return null; };   // la pieza Mail lo reemplaza; sin la pieza no hay estado de correo
 
 document.getElementById('qc-enviar').addEventListener('click', async () => {
   const st = await mlCargar();
@@ -4133,15 +4030,20 @@ setCfgTab((function(){ var t = localStorage.getItem('pcbox-config-tab') || 'sist
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const msg = (t, mal) => { const m = $('pz-msg'); if(m){ m.textContent = t || ''; m.style.color = mal ? '#ff5d5d' : ''; } };
+  const faltanTxt = fl => fl.map(f => esc(f.nombre) + ' (' + f.estado + ')').join(', ');
   async function listar(){
     const cont = $('pz-lista'); if(!cont) return;
     let d;
     try{ d = await (await fetch(API)).json(); }catch(e){ cont.innerHTML = '<div class="qsl-hint">No se pudo leer la lista de piezas.</div>'; return; }
-    $('pz-reinicio').style.display = d.pendiente ? '' : 'none';
+    $('pz-reinicio-txt').textContent = d.pendiente ? 'Hay cambios pendientes: reinicia DMRShack para aplicarlos.' : 'Reinicia DMRShack cuando lo necesites (la página se recarga sola al volver).';
+    $('pz-reiniciar').classList.toggle('primary', !!d.pendiente);
     cont.innerHTML = (d.piezas || []).map(p => {
       const est = p.error ? '<span style="color:var(--amber)">con error</span>' : (p.activa ? '<span style="color:var(--green)">activa</span>' : '<span style="color:var(--text-dim)">desactivada</span>');
       return '<div class="stat-row" style="align-items:flex-start;gap:10px"><div style="flex:1"><b>' + esc(p.nombre) + '</b> <small>v' + esc(p.version) + ' · ' + (p.origen === 'incluida' ? 'incluida' : 'instalada') + ' · ' + est + '</small>' +
         (p.descripcion ? '<div class="qsl-hint">' + esc(p.descripcion) + '</div>' : '') +
+        (p.requiere && p.requiere.length ? '<div class="qsl-hint">Necesita: ' + p.requiere.map(r => esc(r.nombre)).join(', ') + '</div>' : '') +
+        (p.usada_por && p.usada_por.length ? '<div class="qsl-hint">La usan: ' + p.usada_por.map(esc).join(', ') + '</div>' : '') +
+        (p.activa && p.faltan && p.faltan.length ? '<div style="color:var(--amber);font-size:0.9em">⚠ No arrancará: necesita ' + faltanTxt(p.faltan) + '</div>' : '') +
         (p.error ? '<div style="color:var(--amber);font-size:0.9em">⚠ ' + esc(p.error) + '</div>' : '') + '</div>' +
         '<div style="white-space:nowrap"><button type="button" class="qsl-btn" data-pz="estado" data-id="' + esc(p.id) + '" data-activa="' + (p.activa ? '0' : '1') + '">' + (p.activa ? 'Desactivar' : 'Activar') + '</button>' +
         (p.origen === 'instalada' ? ' <button type="button" class="qsl-btn" data-pz="quitar" data-id="' + esc(p.id) + '" data-nombre="' + esc(p.nombre) + '">Quitar</button>' : '') + '</div></div>';
@@ -4161,7 +4063,20 @@ setCfgTab((function(){ var t = localStorage.getItem('pcbox-config-tab') || 'sist
         r = await fetch(API + '/' + encodeURIComponent(id), {method: 'DELETE'});
       }
       const d = await r.json();
-      msg(r.ok ? 'Listo. Reinicia para aplicar el cambio.' : (d.error || 'No se pudo aplicar'), !r.ok);
+      if(r.status === 409 && d.faltan && d.faltan.length){
+        if(d.faltan.every(f => f.estado === 'desactivada')){
+          if(confirm(d.error + '.\n\n¿Activar ' + d.faltan.map(f => f.nombre).join(', ') + ' y luego esta pieza?')){
+            r = await fetch(API + '/' + encodeURIComponent(id) + '/estado', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({activa: true, con_dependencias: true})});
+            const d2 = await r.json();
+            msg(r.ok ? 'Listo. Reinicia para aplicar el cambio.' : (d2.error || 'No se pudo aplicar'), !r.ok);
+          }else{ msg(d.error, true); }
+        }else{
+          msg(d.error + '. Instala primero esa pieza (archivo .zip) en «Agregar una pieza», más abajo.', true);
+          const z = $('pz-zip'); if(z && z.scrollIntoView) z.scrollIntoView({block: 'center'});
+        }
+      }else{
+        msg(r.ok ? 'Listo. Reinicia para aplicar el cambio.' : (d.error || 'No se pudo aplicar'), !r.ok);
+      }
     }catch(err){ msg('Sin respuesta del servicio', true); }
     listar();
   });
@@ -4178,6 +4093,7 @@ setCfgTab((function(){ var t = localStorage.getItem('pcbox-config-tab') || 'sist
     listar();
   });
   $('pz-reiniciar').addEventListener('click', async () => {
+    if(!confirm('¿Reiniciar DMRShack ahora? Las pantallas quedan sin datos unos segundos.')) return;
     msg('Reiniciando DMRShack…');
     try{ await fetch(API + '/reiniciar', {method: 'POST'}); }catch(err){}
     const t0 = Date.now();
@@ -5361,95 +5277,6 @@ setInterval(() => {
 </script>
 <script>
 (function(){
-  const API = 'http://' + location.hostname + ':5018/api/contactos';
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-  let datos = [];
-  function msg(t){ const e = $('ct-msg'); if(e) e.textContent = t || ''; }
-  function pintar(){
-    const f = ($('ct-filtro').value || '').toLowerCase();
-    const l = datos.filter(c => !f || (c.call + ' ' + c.name + ' ' + c.email + ' ' + c.country).toLowerCase().indexOf(f) >= 0);
-    $('ct-body').innerHTML = l.map(c => '<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px"><b>' + (typeof lhQrz === 'function' ? lhQrz(c.call) : esc(c.call)) + '</b></td><td>' + esc(c.name) + '</td><td>' +
-      esc(c.email) + '</td><td>' + esc(c.country) + '</td><td class="nx-sm">' + esc(c.fuente) + '</td><td style="white-space:nowrap"><button data-ed="' + esc(c.call) +
-      '" title="Editar">✎</button> <button data-del="' + esc(c.call) + '" title="Borrar">✕</button></td></tr>').join('');
-    $('ct-estado').textContent = datos.length + ' contactos (' + datos.filter(c => c.email).length + ' con correo)' + (l.length !== datos.length ? ' · mostrando ' + l.length : '');
-  }
-  async function cargar(){
-    try{ const r = await fetch(API); datos = await r.json(); pintar(); }
-    catch(e){ $('ct-estado').textContent = 'Sin conexión con el servicio de contactos (puerto 5018)'; }
-  }
-  $('ct-filtro').addEventListener('input', pintar);
-  $('ct-guardar').addEventListener('click', async () => {
-    msg('Guardando...');
-    try{
-      const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({call: $('ct-call').value, name: $('ct-name').value, email: $('ct-mail').value, country: $('ct-pais').value})});
-      const j = await r.json();
-      if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-      ['ct-call','ct-name','ct-mail','ct-pais'].forEach(i => $(i).value = '');
-      msg('Guardado'); cargar();
-    }catch(e){ msg('Error: ' + e.message); }
-  });
-  $('ct-sync').addEventListener('click', async () => {
-    msg('Sincronizando...');
-    try{ const r = await fetch(API + '/sync', {method: 'POST'}); const j = await r.json(); msg('Nuevos: ' + j.nuevos + (j.repetidos ? ' · correos repetidos omitidos: ' + j.repetidos : '')); cargar(); }
-    catch(e){ msg('Error: ' + e.message); }
-  });
-  $('ct-body').addEventListener('click', async ev => {
-    const ed = ev.target.closest('[data-ed]'), del = ev.target.closest('[data-del]');
-    if(ed){
-      const c = datos.find(x => x.call === ed.dataset.ed); if(!c) return;
-      $('ct-call').value = c.call; $('ct-name').value = c.name; $('ct-mail').value = c.email; $('ct-pais').value = c.country; msg('Editando ' + c.call);
-    }else if(del){
-      if(!confirm('¿Borrar a ' + del.dataset.del + ' de la libreta?')) return;
-      try{ await fetch(API + '/' + encodeURIComponent(del.dataset.del), {method: 'DELETE'}); cargar(); }catch(e){ msg('Error: ' + e.message); }
-    }
-  });
-  document.querySelectorAll('[data-ctx]').forEach(b => b.addEventListener('click', () => { location.href = API + '/export?fmt=' + b.dataset.ctx; }));
-  function parseQrz(t){
-    const L = String(t || '').replace(/\r/g, '').split('\n').map(s => s.replace(/\u00a0/g, ' ').trim());
-    const m = L.join('\n').match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
-    const email = m ? m[0] : '';
-    const util = L.filter(s => s && !/^e-?mail\s*:/i.test(s));
-    if(!util.length) return null;
-    const p = util[0].match(/^([A-Za-z0-9]{3,10}(?:\/[A-Za-z0-9]+)?)\s*(.*)$/);
-    if(!p) return null;
-    let pais = p[2].trim();
-    const resto = util.slice(1), name = resto[0] || '', dir = resto.slice(1);
-    if(!pais && dir.length) pais = dir[dir.length - 1];
-    const addr = (dir.length && dir[dir.length - 1].toLowerCase() === pais.toLowerCase() ? dir.slice(0, -1) : dir).join(' | ');
-    return {call: p[1].toUpperCase(), name: name, email: email, pais: pais, notes: addr.slice(0, 200)};
-  }
-  $('ct-pegar-ok').addEventListener('click', async () => {
-    const pm = $('ct-pegar-msg'), d = parseQrz($('ct-pegar').value);
-    if(!d){ pm.textContent = 'No pude leer el formato: la primera línea debe empezar con el indicativo'; return; }
-    const prev = datos.find(x => x.call === d.call.split('/')[0]) || {};
-    pm.textContent = 'Guardando...';
-    try{
-      const r = await fetch(API, {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({call: d.call, name: d.name || prev.name || '', email: d.email || prev.email || '',
-                              country: d.pais || prev.country || '', notes: d.notes || prev.notes || ''})});
-      const j = await r.json();
-      if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
-      $('ct-pegar').value = '';
-      pm.textContent = 'Agregado ' + j.call + (d.email ? ' (' + d.email + ')' : ' (sin correo)');
-      cargar();
-    }catch(e){ pm.textContent = 'Error: ' + e.message; }
-  });
-  const tab = document.querySelector('[data-cfg="contactos"]');
-  if(tab) tab.addEventListener('click', cargar);
-  const p = $('cfg-panel-contactos');
-  if(p && !p.querySelector('.man-link')){
-    const a = document.createElement('a'); a.className = 'man-link'; a.target = '_blank';
-    a.href = 'manuales/index.html#contactos';
-    a.textContent = 'Ver manual de esta sección ↗';
-    a.style.cssText = 'display:inline-block;margin:0 0 10px;font-size:12px;color:var(--amber)';
-    p.insertBefore(a, p.firstChild);
-  }
-})();
-</script>
-<script>
-(function(){
   const sb = document.querySelector('.sidebar');
   if(!sb || document.getElementById('sb-toggle')) return;
   const mq = window.matchMedia('(min-width: 601px)'), KEY = 'pcbox-sidebar-oculto';
@@ -5999,7 +5826,7 @@ function lhQrz(c){
       var uid = decodeURIComponent(x.dataset.uid);
       var q = (qcCola || []).find(function(z){ return z.uid === uid; });
       if(!q || !q.email || q.estado === 'enviada') return;
-      m.insertAdjacentHTML('afterend', ' <button class="qsl-mini-btn" data-send="' + encodeURIComponent(uid) + '" title="Enviar la QSL a ' + esc(q.email) + '">✉</button>');
+      m.insertAdjacentHTML('afterend', ' <button class="qsl-mini-btn" data-requiere-pieza="mail" data-send="' + encodeURIComponent(uid) + '" title="Enviar la QSL a ' + esc(q.email) + '">✉</button>');
     });
   }
   var pintarOrig = qcPintar;
@@ -6044,7 +5871,7 @@ function lhQrz(c){
 
   // envio automatico: se dispara cuando se ingresa o actualiza un correo (lapiz o busqueda en QRZ)
   async function autoEnviar(emails){
-    if(localStorage.getItem('qc_auto') === '0') return;
+    if(localStorage.getItem('qc_auto') === '0' || !(window.DMRS_PIEZAS || {}).mail) return;   // sin la pieza Mail no hay envío automático
     var calls = Object.keys(emails || {}).filter(function(c){ return emails[c]; }).map(function(c){ return c.toUpperCase(); });
     if(!calls.length) return;
     var fresh; try{ fresh = await (await fetch(QC_API)).json(); }catch(e){ return; }
@@ -6070,6 +5897,7 @@ function lhQrz(c){
   if(m && !document.getElementById('qc-auto')){
     var l = document.createElement('label');
     l.style.cssText = 'margin-right:10px;font-size:.9em;cursor:pointer';
+    l.setAttribute('data-requiere-pieza', 'mail');
     l.innerHTML = '<input type="checkbox" id="qc-auto"> Envío automático al ingresar el correo';
     m.parentNode.insertBefore(l, m);
     var c = l.firstChild; c.checked = localStorage.getItem('qc_auto') !== '0';
@@ -6555,5 +6383,51 @@ function hsnxFecha(){
   });
 })();
 </script><!-- SISMAPA-JS-FIN -->
+<!-- DMRSHACK-REQUIERE-INICIO -->
+<style>
+.pz-off{opacity:.45 !important;filter:grayscale(1);cursor:not-allowed !important}
+#pz-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;max-width:min(92vw,460px);background:#3d2b05;color:#fff;border:1px solid #f1a208;border-radius:8px;padding:10px 16px;font:13px/1.4 sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5);cursor:pointer}
+</style>
+<script>
+/* Botones o funciones que usan el servicio de otra pieza: si esa pieza no está cargada quedan en gris,
+   no ejecutan nada y al hacer clic muestran un aviso. Se marcan con data-requiere-pieza="<id de la pieza>".
+   Funciona también con elementos que el JS crea después. El estado cambia al reiniciar, como todo el sistema de piezas. */
+(function(){
+  var CARGADAS = {/*DMRSHACK:PIEZAS*/};
+  var NOMBRES = {mail: 'Correo (Gmail)'};
+  window.DMRS_PIEZAS = CARGADAS;
+  var nombre = function(id){ return CARGADAS[id] || NOMBRES[id] || id; };
+  function marcar(){
+    document.querySelectorAll('[data-requiere-pieza]').forEach(function(el){
+      var id = el.getAttribute('data-requiere-pieza'), falta = !CARGADAS[id];
+      if(el.classList.contains('pz-off') !== falta) el.classList.toggle('pz-off', falta);
+      if(falta){
+        var t = 'Necesita la pieza ' + nombre(id);
+        if(el.getAttribute('title') !== t) el.setAttribute('title', t);
+        el.setAttribute('aria-disabled', 'true');
+      }
+    });
+  }
+  function aviso(txt){
+    var a = document.getElementById('pz-aviso');
+    if(!a){ a = document.createElement('div'); a.id = 'pz-aviso'; a.addEventListener('click', function(){ a.remove(); }); document.body.appendChild(a); }
+    a.textContent = txt;
+    clearTimeout(aviso.t); aviso.t = setTimeout(function(){ if(a.parentNode) a.remove(); }, 7000);
+  }
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('[data-requiere-pieza]') : null;
+    if(!el) return;
+    var id = el.getAttribute('data-requiere-pieza');
+    if(CARGADAS[id]) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    aviso('Esta función necesita la pieza ' + nombre(id) + '. Actívala o instálala en Configuración → Piezas.');
+  }, true);
+  var pendiente = null;
+  new MutationObserver(function(){ clearTimeout(pendiente); pendiente = setTimeout(marcar, 80); })
+    .observe(document.body, {childList: true, subtree: true});
+  marcar();
+})();
+</script>
+<!-- DMRSHACK-REQUIERE-FIN -->
 </body>
 </html>

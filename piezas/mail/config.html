@@ -1,0 +1,26 @@
+            <div class="qsl-config">
+              <div class="qsl-section-label">Cuenta Gmail para enviar QSL (SMTP con contraseña de aplicación)</div>
+              <div class="qsl-field-row">
+                <label>Correo Gmail <input type="text" id="ml-addr" autocomplete="off" placeholder="tucuenta@gmail.com"></label>
+                <label>Contraseña de aplicación <input type="password" id="ml-pass" autocomplete="new-password" placeholder="16 caracteres; vacío = mantener la guardada"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Nombre del remitente <input type="text" id="ml-nombre" autocomplete="off" placeholder="@@NOMBRE@@ @@CALL@@"></label>
+                <label>Indicativo en el correo <input type="text" id="ml-op" autocomplete="off" placeholder="@@CALL@@"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:1 1 100%">Asunto <input type="text" id="ml-asunto" autocomplete="off" style="width:100%"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:1 1 100%">Mensaje <textarea id="ml-cuerpo" rows="6" style="width:100%"></textarea></label>
+              </div>
+              <div class="qsl-hint">En asunto y mensaje puedes usar {dx} (indicativo del colega), {op} (tu indicativo) y {fecha} (fecha del contacto).</div>
+              <div class="qsl-field-row">
+                <button class="qsl-btn primary" id="ml-guardar">Guardar y probar acceso</button>
+                <button class="qsl-btn" id="ml-probar">Enviarme un correo de prueba</button>
+                <button class="qsl-btn danger" id="ml-quitar">Quitar cuenta</button>
+                <span id="ml-msg" style="opacity:.8;font-size:0.85em"></span>
+              </div>
+              <div id="ml-estado" class="qsl-hint"></div>
+              <div class="qsl-hint">Cómo obtener la contraseña de aplicación: en tu cuenta de Google, Seguridad → Verificación en dos pasos (debe estar activada) → Contraseñas de aplicaciones. Se guarda solo en pcbox (archivo con permisos restringidos) y no se devuelve al navegador. La contraseña viaja sin cifrar dentro de tu red local hasta pcbox. Gmail envía siempre desde la cuenta con que inicias sesión. Tope de seguridad: 400 correos por día.</div>
+            </div>
