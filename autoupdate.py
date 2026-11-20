@@ -109,7 +109,7 @@ def _asset(rel):
     if not p:
         return None
     ext = r"\.exe" if p.startswith("windows") else r"\.tar\.gz"
-    pat = r"pcbox-portable-%s-v?\d+(\.\d+)*%s" % (re.escape(p), ext)
+    pat = r"pcbox-portable-%s(-v?\d+(\.\d+)*)?%s" % (re.escape(p), ext)   # con o sin versión en el nombre
     for a in rel["assets"]:
         if re.fullmatch(pat, str(a.get("name") or "")):
             return a
@@ -345,7 +345,8 @@ def _lanzar_windows(cmd, viejo=None, imagen=None):
 
 def _bin_windows(rel, asset):
     exe_dir, actual = _E["exe_dir"], Path(sys.executable).resolve()
-    dest, part = exe_dir / asset["name"], exe_dir / (asset["name"] + ".part")
+    nombre = "pcbox-portable-windows-x64-v%s.exe" % rel["version"]        # siempre con versión: el .exe en uso no se puede pisar
+    dest, part = exe_dir / nombre, exe_dir / (nombre + ".part")
     try:
         _descargar(asset, part)
         with open(part, "rb") as f:
