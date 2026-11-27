@@ -1,0 +1,30 @@
+{
+  "id": "aprs",
+  "nombre": "APRS",
+  "version": "1.1.3",
+  "descripcion": "Tarjeta APRS: conexión APRS-IS, mensajes, baliza, mapa y búsqueda por indicativo.",
+  "autor": "CA3PVF",
+  "orden": 30,
+  "backend": {
+    "archivo": "servicio.py",
+    "alias": "aprs_service",
+    "init": [
+      "init_db",
+      "cargar_config"
+    ],
+    "arranque": [
+      "conectar_loop",
+      "reintentos_loop",
+      "baliza_loop"
+    ]
+  },
+  "frontend": {
+    "menu": "APRS",
+    "tarjeta": "tarjeta.html",
+    "js": "aprs.js",
+    "config": {
+      "pestana": "APRS",
+      "panel": "config.html"
+    }
+  }
+}

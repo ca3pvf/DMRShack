@@ -1,0 +1,22 @@
+{
+  "id": "botc",
+  "nombre": "Bot de concursos APRS",
+  "version": "1.0.0",
+  "descripcion": "Bot de concursos por APRS: responde a los participantes, registra y envía la QSL por correo, con agenda de actividades, estadísticas y registro.",
+  "autor": "CA3PVF",
+  "orden": 20,
+  "requiere": [
+    "aprs"
+  ],
+  "backend": {
+    "archivo": "servicio.py",
+    "init": [
+      "iniciar_botc"
+    ]
+  },
+  "frontend": {
+    "menu": "BOT",
+    "tarjeta": "tarjeta.html",
+    "js": "botc.js"
+  }
+}

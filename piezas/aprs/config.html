@@ -1,0 +1,44 @@
+            <div class="qsl-config">
+              <div class="qsl-section-label">Estación</div>
+              <div class="qsl-field-row">
+                <label>Indicativo <input type="text" id="apc-callsign" maxlength="9"></label>
+                <label>SSID (0 a 15) <input type="text" id="apc-ssid" maxlength="2"></label>
+                <label>Passcode APRS-IS <input type="text" id="apc-passcode" maxlength="5" placeholder="automático"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Latitud <input type="text" id="apc-lat"></label>
+                <label>Longitud <input type="text" id="apc-lon"></label>
+                <label>Ambigüedad de posición
+                  <select id="apc-amb"><option value="0">0 · exacta</option><option value="1">1 · ~1 km</option><option value="2">2 · ~10 km</option><option value="3">3 · ~100 km</option><option value="4">4 · ~1000 km</option></select>
+                </label>
+              </div>
+              <div style="margin:2px 0 6px"><button type="button" class="lh-chip" id="apc-desde-clima">Usar la ubicación de la ciudad del clima</button></div>
+              <div class="qsl-section-label" style="margin-top:8px;">Conexión y cobertura</div>
+              <div class="qsl-field-row">
+                <label>Servidor APRS-IS <input type="text" id="apc-server"></label>
+                <label>Puerto <input type="text" id="apc-port"></label>
+                <label>Radio de cobertura (km, 5 a 500) <input type="text" id="apc-radius"></label>
+              </div>
+              <div class="qsl-section-label" style="margin-top:8px;">Baliza</div>
+              <label class="qsl-checkbox"><input type="checkbox" id="apc-ben"> Baliza automática activada</label>
+              <div class="qsl-field-row">
+                <label>Intervalo (min, mínimo 10) <input type="text" id="apc-bint"></label>
+                <label>Comentario (máx. 43) <input type="text" id="apc-bcom" maxlength="43"></label>
+              </div>
+              <div class="qsl-section-label" style="margin-top:8px;">Icono de la estación</div>
+              <div class="qsl-field-row">
+                <label>Icono <select id="apc-preset"></select></label>
+                <label>Tabla <select id="apc-tabla"><option value="/">/ (primaria)</option><option value="\">\ (secundaria)</option></select></label>
+                <label>Símbolo <input type="text" id="apc-simbolo" maxlength="1"></label>
+              </div>
+              <div class="qsl-section-label" style="margin-top:8px;">Actualización</div>
+              <div class="qsl-field-row">
+                <label>Refresco del panel APRS (s, 5 a 300) <input type="text" id="apc-refresh"></label>
+                <label>Recordar estaciones (horas, 1 a 48) <input type="text" id="apc-ttl"></label>
+              </div>
+              <div class="qsl-field-row">
+                <button class="qsl-btn primary" id="apc-guardar">Guardar configuración APRS</button>
+                <span id="apc-msg" style="opacity:.8;font-size:0.85em"></span>
+              </div>
+              <div class="qsl-hint">Cambiar indicativo, SSID, passcode, servidor, puerto o posición reconecta a APRS-IS automáticamente. Passcode vacío = se calcula desde el indicativo.</div>
+            </div>

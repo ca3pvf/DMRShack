@@ -1,0 +1,117 @@
+<style>
+.bot-req{margin:6px 0 10px;border:1px solid rgba(127,140,160,.3);border-radius:6px;padding:6px 10px;font-size:0.88em}
+.bot-req .rq{display:flex;gap:8px;align-items:baseline;padding:2px 0;flex-wrap:wrap}
+.bot-req .ic{width:1.2em;text-align:center;font-weight:700}
+.bot-req .ok .ic{color:#39ff14}.bot-req .aviso .ic{color:#ffb300}.bot-req .error .ic{color:#ff5d5d}
+.bot-req .tx{opacity:.8}.bot-req a{cursor:pointer;text-decoration:underline}
+.bot-st{display:inline-block;padding:1px 7px;border-radius:9px;font-size:.92em;border:1px solid currentColor}
+.bot-st-enviada{color:#39ff14}.bot-st-error{color:#ff5d5d}.bot-st-esperando_correo,.bot-st-nuevo{color:#ffb300}
+.bot-st-en_cola,.bot-st-enviando{color:#5aa9ff}.bot-st-sin_correo,.bot-st-otro{color:#9aa5b1}
+</style>
+      <section class="card span2" id="botc" style="--accent:var(--green)">
+        <div class="card-head">
+          <span class="card-title">BOT DE CONCURSOS APRS</span>
+          <span class="card-meta">Concurso único · Concursos agendados</span>
+        </div>
+        <div class="card-body">
+          <div class="cfg-tabs" id="botc-tabs" style="margin-bottom:10px">
+            <button type="button" class="cfg-tab on" data-botmodo="unico">Concurso único</button>
+            <button type="button" class="cfg-tab" data-botmodo="agenda">Concursos agendados</button>
+          </div>
+          <div id="botc-cont">
+            <div class="qsl-config">
+              <div class="qsl-section-label">Bot APRS de concurso (responde por APRS y envía la QSL por correo)</div>
+              <div id="bot-req" class="bot-req">Consultando requisitos…</div>
+              <div class="qsl-section-label">Agenda de actividades (programación)</div>
+              <div class="qsl-hint">Con actividades programadas, el bot usa solo la vigente según la fecha y hora de pcbox: los datos de abajo (nombre, palabras, fechas y QSL) se toman de ella. Si el fin de una es igual al inicio de la siguiente, el cambio es inmediato. Sin actividades, el bot funciona como siempre.</div>
+              <div id="ag-estado" class="qsl-hint"></div>
+              <div style="max-height:200px;overflow-y:auto;font-size:0.85em">
+                <table class="lh-table" style="width:100%"><thead><tr><th>Actividad</th><th>Inicio</th><th>Fin</th><th>Palabras</th><th>QSL</th><th>Part.</th><th></th></tr></thead>
+                <tbody id="ag-body"></tbody></table>
+              </div>
+              <div class="qsl-field-row">
+                <label>Nombre <input type="text" id="ag-nombre" autocomplete="off" placeholder="Día {n}"></label>
+                <label>Inicio <input type="datetime-local" id="ag-ini"></label>
+                <label>Fin <input type="datetime-local" id="ag-fin"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:1 1 100%">Palabras o frases válidas (una por línea; {n} = número en una serie) <textarea id="ag-pal" rows="2" style="width:100%"></textarea></label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Frecuencia (MHz) <input type="text" id="ag-qfreq" autocomplete="off" style="width:90px"></label>
+                <label>Banda <input type="text" id="ag-qband" autocomplete="off" style="width:60px"></label>
+                <label>Modo <input type="text" id="ag-qmode" autocomplete="off" style="width:70px"></label>
+                <label>Comentario en la QSL <input type="text" id="ag-qcom" autocomplete="off" style="width:240px"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Imagen de la QSL <input type="file" id="ag-img" accept="image/png,image/jpeg,image/webp"></label>
+                <img id="ag-imgprev" style="display:none;height:40px;border-radius:3px">
+                <button class="qsl-btn" id="ag-imgquitar">Quitar imagen</button>
+                <button class="qsl-btn primary" id="ag-add">Agregar actividad</button>
+                <button class="qsl-btn" id="ag-cancel">Limpiar formulario</button>
+              </div>
+              <div class="qsl-field-row">
+                <label>Crear serie: repetir cada <input type="text" id="ag-step" value="1" style="width:40px"> días</label>
+                <label>cantidad <input type="text" id="ag-cant" value="7" style="width:40px"></label>
+                <button class="qsl-btn" id="ag-serie">Generar serie con el formulario</button>
+              </div>
+              <div class="qsl-field-row">
+                <button class="qsl-btn primary" id="ag-guardar">Guardar agenda</button>
+                <button class="qsl-btn" id="ag-descartar">Descartar cambios</button>
+                <span id="ag-msg" style="opacity:.8;font-size:0.85em"></span>
+              </div>
+              <div class="qsl-field-row">
+                <label><input type="checkbox" id="bot-on"> Bot activado</label>
+                <label>Nombre del concurso <input type="text" id="bot-nombre" autocomplete="off" placeholder="Concurso APRS"></label>
+                <label>Máx. participantes por día <input type="text" id="bot-max" autocomplete="off" style="width:70px"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Inicio (hora de pcbox) <input type="datetime-local" id="bot-ini"></label>
+                <label>Fin (hora de pcbox) <input type="datetime-local" id="bot-fin"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:1 1 100%">Palabras o frases válidas (una por línea) <textarea id="bot-palabras" rows="3" style="width:100%"></textarea></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta al participante nuevo (tengo su correo; envío automático ACTIVADO) <textarea id="bot-ok" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta al participante nuevo (tengo su correo; envío automático APAGADO) <textarea id="bot-okm" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta si ya estaba registrado <textarea id="bot-dup" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Pregunta si no tengo su correo <textarea id="bot-preg" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta al recibir su correo ({mail} = correo parcialmente oculto) <textarea id="bot-mailok" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta si dice NO ({fecha} = fecha de hoy) <textarea id="bot-no" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta si la palabra es incorrecta ({clave} = la clave correcta) <textarea id="bot-mal" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+                <label style="flex:0 1 calc(50% - 50px);min-width:240px">Respuesta si está fuera de fecha/hora ({inicio} y {fin} = fechas del concurso) <textarea id="bot-fuera" class="bot-msg" rows="1" autocomplete="off" spellcheck="false"></textarea></label>
+              </div>
+              <div class="qsl-section-label" style="margin-top:8px">QSL del concurso</div>
+              <div class="qsl-field-row">
+                <label class="qsl-checkbox"><input type="checkbox" id="bot-auto"> Generar y enviar la QSL por correo automáticamente</label>
+              </div>
+              <div class="qsl-field-row">
+                <label>Frecuencia (MHz) <input type="text" id="bot-qfreq" autocomplete="off" style="width:90px"></label>
+                <label>Banda <input type="text" id="bot-qband" autocomplete="off" placeholder="2m" style="width:60px"></label>
+                <label>Modo <input type="text" id="bot-qmode" autocomplete="off" style="width:70px"></label>
+                <label>RST env. <input type="text" id="bot-qrs" autocomplete="off" style="width:50px"></label>
+                <label>RST rec. <input type="text" id="bot-qrr" autocomplete="off" style="width:50px"></label>
+              </div>
+              <div class="qsl-field-row">
+                <label style="flex:1 1 100%">Comentario en la QSL <input type="text" id="bot-qcom" autocomplete="off" style="width:100%"></label>
+              </div>
+              <div class="qsl-hint">El envío automático usa el diseño actual del generador (colores, fondo y posición del cuadro) y la cuenta Gmail configurada. Si no hay correo del colega (libreta de contactos, cola QSL o QRZ), el bot se lo pide por APRS (debe responder MAIL tu@correo.com); si responde NO, solo se le envía el enlace temporal de 10 minutos por APRS. Sin la casilla marcada, el bot solo registra y agrega a la cola: no envía correos.</div>
+              <div class="qsl-hint">En las respuestas puedes usar {call} (indicativo del colega) y {op} (tu indicativo). Máximo 67 caracteres ya reemplazados. Vacíos de inicio o fin = sin límite de fecha.</div>
+              <div class="qsl-field-row">
+                <button class="qsl-btn primary" id="bot-guardar">Guardar bot</button>
+                <button class="qsl-btn" id="bot-actualizar">Actualizar lista</button>
+                <button class="qsl-btn danger" id="bot-reset">Borrar participantes</button>
+                <span id="bot-msg" style="opacity:.8;font-size:0.85em"></span>
+              </div>
+              <div id="bot-estado" class="qsl-hint"></div>
+              <div style="max-height:220px;overflow-y:auto;font-size:0.85em">
+                <table class="lh-table" style="width:100%"><thead><tr><th>Call</th><th>Desde</th><th>Hora</th><th>Mensaje</th><th>Estado QSL</th></tr></thead>
+                <tbody id="bot-body"></tbody></table>
+              </div>
+              <div class="qsl-hint">Cuando un colega envía por APRS un mensaje a tu indicativo con una de las palabras, el bot lo registra una sola vez por concurso y lo agrega a la cola QSL. Busca su correo en este orden: libreta de contactos, cola QSL y QRZ; si no lo encuentra, se lo pide por APRS. Con "Generar y enviar la QSL por correo automáticamente" la envía sin intervención; si no, queda en la cola y la envías tú con "Enviar por correo" (tarjeta Last Heard, "Ver cola"). Comparación sin importar mayúsculas, tildes ni signos.</div>
+              <div class="qsl-hint">Protecciones: máximo 60 respuestas por hora en total; los avisos de "palabra incorrecta" o "concurso no disponible" tienen su propio tope (20 por hora y 3 por indicativo al día) para no agotar las respuestas a participantes; un indicativo que envía más de 6 mensajes en 10 minutos se ignora durante 1 hora (posible bucle entre bots).</div>
+            </div>
+          </div>
+        </div>
+      </section>
